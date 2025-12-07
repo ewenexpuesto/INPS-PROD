@@ -16,18 +16,17 @@ int main()
     // arma::rowvec v = arma::randu<arma::rowvec>(10); // 10 réels uniformes entre 0 et 1    Poly poly;
     // poly.calcLaguerre(5 , 6 , v);
     // return (0);
-    
-    // Mandatory test #01 - Basis truncation
-    // br = 1.935801664793151, bz = 2.829683956491218, N = 14, Q = 1.3
+
+    // Mandatory test #00 - Hermite and Laguerre polynomials
     Poly poly;
     arma::vec zVals, calcVals, targetVals;
     zVals = {-3.1, -2.3, -1.0, -0.3, 0.1, 4.3, 9.2, 13.7};
     poly.calcHermite(6, zVals); // compute Hermite polynomials for n in {0 ... 5}
-    calcVals   = poly.getHermiteRow(4); // n = 4
+    calcVals   = poly.hermite(4); // n = 4
     targetVals = {  1.02835360e+03,  2.05825600e+02, -2.00000000e+01,  7.80960000e+00,
                     1.15216000e+01,  4.59456160e+03,  1.10572154e+05,  5.54643458e+05};
     TS_ASSERT_DELTA(arma::norm(calcVals / targetVals - 1.0), 0.0, 1e-08);
-    calcVals   = poly.getHermiteRow(5); // n = 5
+    calcVals   = poly.hermite(5); // n = 5
     targetVals = { -4.76676832e+03, -3.88909760e+02,  8.00000000e+00, -3.17577600e+01,
                     1.18403200e+01,  3.48375818e+04,  1.98557479e+06,  1.50339793e+07};
     TS_ASSERT_DELTA(arma::norm(calcVals / targetVals - 1.0), 0.0, 1e-08);
@@ -43,37 +42,33 @@ int main()
 
     printf("Hermite and Laguerre polynomials tests passed!\n");
 
-
-    Basis basis(1.935801664793151, 2.829683956491218, 14, 1.3);
+    // Mandatory test #01 - Basis truncation
+    //     br = 1.935801664793151, bz = 2.829683956491218, N = 14, Q = 1.3
+    Basis basis(1.935801664793151,      2.829683956491218,     14,     1.3);
     TS_ASSERT_EQUALS(basis.mMax, 14);
-
-    arma::ivec expectedNMax = {7, 7, 6, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1};
-    TS_ASSERT((basis.nMax - expectedNMax).is_zero());
-
-    arma::imat expectedNZMax = {
-        {18, 15, 13, 10, 7, 5, 2},
-        {16, 14, 11,  9, 6, 3, 1},
-        {15, 13, 10,  7, 5, 2, 0},
-        {14, 11,  9,  6, 3, 1, 0},
-        {13, 10,  7,  5, 2, 0, 0},
-        {11,  9,  6,  3, 1, 0, 0},
-        {10,  7,  5,  2, 0, 0, 0},
-        { 9,  6,  3,  1, 0, 0, 0},
-        { 7,  5,  2,  0, 0, 0, 0},
-        { 6,  3,  1,  0, 0, 0, 0},
-        { 5,  2,  0,  0, 0, 0, 0},
-        { 3,  1,  0,  0, 0, 0, 0},
-        { 2,  0,  0,  0, 0, 0, 0},
-        { 1,  0,  0,  0, 0, 0, 0}
-    };
+    arma::ivec nMax = {7, 7, 6, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1};
+    TS_ASSERT((basis.nMax - nMax).is_zero());
+    arma::imat n_zMax = {{18, 15, 13, 10, 7, 5, 2}, 
+                        {16, 14, 11,  9, 6, 3, 1}, 
+                        {15, 13, 10,  7, 5, 2, 0}, 
+                        {14, 11,  9,  6, 3, 1, 0}, 
+                        {13, 10,  7,  5, 2, 0, 0}, 
+                        {11,  9,  6,  3, 1, 0, 0}, 
+                        {10,  7,  5,  2, 0, 0, 0}, 
+                        { 9,  6,  3,  1, 0, 0, 0}, 
+                        { 7,  5,  2,  0, 0, 0, 0}, 
+                        { 6,  3,  1,  0, 0, 0, 0}, 
+                        { 5,  2,  0,  0, 0, 0, 0}, 
+                        { 3,  1,  0,  0, 0, 0, 0}, 
+                        { 2,  0,  0,  0, 0, 0, 0}, 
+                        { 1,  0,  0,  0, 0, 0, 0}};
+    // check if matrices are equal
+    TS_ASSERT((basis.n_zMax - n_zMax).is_zero());
 
     printf("Basis truncation tests passed!\n");
 
-    TS_ASSERT((basis.n_zMax - expectedNZMax).is_zero());
-
     // Mandatory test #02 - Basis r-functions
     //     br = 1.935801664793151, bz = 2.829683956491218, N = 14, Q = 1.3
-    // Basis basis(1.935801664793151,      2.829683956491218,     14,     1.3);
     arma::vec r = {3.1, 2.3, 1.0, 0.0, 0.1, 4.3, 9.2, 13.7};
     arma::vec res00 = { 8.08521235111303e-02,
                         1.43887615825118e-01,
@@ -96,6 +91,8 @@ int main()
 
     printf("Basis r-function tests passed!\n");
 
+    // Mandatory test #03 - Basis z-functions
+    //     br = 1.935801664793151, bz = 2.829683956491218, N = 14, Q = 1.3
     arma::vec z = {-10.1, -8.4, -1.0, 0.0, 0.1, 4.3, 9.2, 13.7};
     arma::vec res00bis = { 7.64546544834383e-04,
                         5.44886272162148e-03,
