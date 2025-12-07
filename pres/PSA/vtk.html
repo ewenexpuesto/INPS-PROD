@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PSA</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="core/fonts/mono.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/animate.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/style_core.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/mermaid.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/gitgraph.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/style_ensiie.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/katex.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/asciinema-player.css"> 
+  </head>
+  <body>
+    <textarea id="source" readonly>
+
+layout: true
+class: animated fadeIn middle numbers
+
+.footnote[
+`PSA` - N. Dubray - ENSIIE - 2024 - [:book:](../index.html)
+]
+
+---
+
+# `VTK`
+
+.hcenter.w20[![](images/vtk.png)]
+
+## History
+* started in **1993** as companion software for the book *"The Visualization Toolkit: An Object-Oriented Approach to 3D Graphics"* by Will Schroeder, Ken Martin and Bill Lorensen.
+* creation of Kitware Inc. in **1998**
+* main private contributors: LANL, LLNL, SNL, ARL, NCSA...
+* **most used visualization system in the world** (science, industry, medical, big data...)
+
+## Characteristics
+* **4646 `C++` classes** (03/17/2021)
+* built on top of `OpenGL`
+* **multiprocess** and/or **multithread** and/or **`CUDA`** and/or **`OpenCL`**...
+
+.block[
+* Repository: [https://gitlab.kitware.com/vtk/vtk](https://gitlab.kitware.com/vtk/vtk)
+* Website: [https://www.vtk.org](https://www.vtk.org)
+* License: `BSD`
+]
+
+---
+
+# `VTK` - Information sources
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.noflex[
+.rightf.w30[![](images/vtk_book.png)]
+
+## Manuals
+* reference manual: [https://www.vtk.org/documentation/](https://www.vtk.org/documentation/)
+* local manual pages: package `vtk7-doc` in `ubuntu`
+
+## Examples
+* [https://lorensen.github.io/VTKExamples/site/](https://lorensen.github.io/VTKExamples/site/)
+
+## Textbook
+* `VTK` Textbook (available in [**free pdf**](https://www.kitware.com/products/books/VTKTextbook.pdf))
+
+## Tutorials
+:arrow_right: some of the following slides have been inspired by
+* [`VTK` tutorial by Dave Semeraro](http://www.ncsa.illinois.edu/People/semeraro/PPT/VTK_TUTORIAL/v3_document.htm)
+]
+
+---
+
+# `VTK` - Library
+
+## Languages
+* `VTK` is a library of **object-oriented** classes
+* pure `C++` core
+* uses a lot of OO-programming techniques
+* bindings available for `Tcl`, **`Python`**, and `Java`
+
+## Collaboration diagram for `vtkFieldData`
+
+.vspace[]
+
+.hcenter.w40[![](images/vtk_graph.png)]	
+
+---
+
+# `VTK` - Overview
+
+## Workflow
+
+.hcenter.w60.mermaid.shadow[
+    graph LR
+    A(user data) --> B
+    B(geometry) --> C(image)
+]
+
+.row.hcenter.w60[
+.column.w20[
+![](images/cow0.png)]
+.column.w10[ ]
+.column.w30[
+![](images/cow1.png)]
+.column.w10[ ]
+.column.w30[
+![](images/cow2.png)]
+]
+
+## Usual **user data**
+* field data on a regular grid
+* field data on an irregular grid
+* polygonal data
+* ...
+
+---
+
+# `VTK` - Models
+
+
+.hcenter.w60.mermaid.shadow[
+    graph LR
+    A(user data) --> B
+    B(geometry) --> C(image)
+]
+
+## `VTK` main parts
+
+:arrow_right: **Visualization Model**
+* Visualization **Pipeline**
+* Data to Geometry
+
+:arrow_right: **Graphics Model**
+* Abstract layer above OpenGL
+* Geometry to Image
+
+:arrow_right: **Imaging Model**
+* Image processing
+
+---
+
+# `VTK` - Models
+
+## Visualization Model pipeline
+
+.hcenter.w75.mermaid.shadow[
+    graph LR
+    A(source) --> B
+    B(filter) --> Y
+    C(source) --> D
+    D(filter) --> E
+    E(filter) --> Y
+    Y(filter) --> Z(graphics model)
+    style A fill:#2A2
+    style C fill:#2A2
+    style Z fill:#A22
+]
+
+:arrow_right: `Source` objects have 0 input, 1+ output(s)  
+:arrow_right: `Filter` objects have 1+ input(s), 1+ output(s)  
+:arrow_right: `Mapper` objects have 1+ input(s), 0 output  
+:arrow_right: The pipeline implements an **implicit execution** mechanism
+
+ .vspace[]
+
+## Main Visualization Model Classes
+* `vtkDataObject`: contains generic data,
+* `vtkDataSet`: contains **geometry + topology + attribute data**,
+* `vtkProcessObject`: transforms a `vtkDataObject` into another `vtkDataObject`.
+
+---
+
+# `VTK` - Models
+
+## Main Graphics Model Classes
+* `vtkRenderWindow`: a usual window, may contain several renderers,
+* `vtkRenderer`: an OpenGL context, belongs to a window,
+* `vtkActor`: an object rendered in the scene,
+* `vtkMapper`: constructs an object from data,
+* `vtkCamera`: a camera in the scene,
+* `vtkLight`: a light source in the scene,
+* `vtkProperty`: appearance of an actor (color, transparency, light properties...),
+* `vtkRenderWindowInteractor`: how the user interacts with the scene.
+
+:arrow_right: Some objects may be automatically created by others:  
+:bulb: For example, a `vtkRenderer` creates an instance of a `vtkCamera`.
+
+---
+
+# `VTK` - Hello world !
+
+## .hcenter[\[vtk/vtk_hello_world_cpp/vtk_hello_world.cxx\]]
+```C++
+#include <vtkCylinderSource.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkActor.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtkProperty.h>
+#include <vtkSmartPointer.h>
+
+int main(int, char *[])
+{
+  // source
+  vtkSmartPointer<vtkCylinderSource> cylinder = vtkSmartPointer<vtkCylinderSource>::New();
+  // mapper
+  vtkSmartPointer<vtkPolyDataMapper> cylinderMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  cylinderMapper->SetInputConnection(cylinder->GetOutputPort());
+  // actor
+  vtkSmartPointer<vtkActor> cylinderActor = vtkSmartPointer<vtkActor>::New();
+  cylinderActor->SetMapper(cylinderMapper);
+  cylinderActor->RotateX(30.0);
+  // renderer
+  vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
+  // window
+  vtkSmartPointer<vtkRenderWindow> renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+  renderWindow->AddRenderer(renderer);
+  // interactor
+  vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+  renderWindowInteractor->SetRenderWindow(renderWindow);
+  // add actor to renderer
+  renderer->AddActor(cylinderActor);
+  // set window size and render
+  renderWindow->SetSize(200, 200);
+  // start interactor loop
+  renderWindowInteractor->Start();
+  return EXIT_SUCCESS;
+}
+```
+
+---
+
+# `VTK` - Hello world !
+
+:arrow_right: The prefered way to compile `VTK` code in `C++` is to use `CMake` ([website](https://cmake.org/)).
+
+## .hcenter[\[vtk/vtk_hello_world_cpp/CMakeLists.txt\]]
+```CMake
+cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
+
+project(vtk_hello_world)
+
+find_package(VTK COMPONENTS 
+  vtkCommonColor
+  vtkCommonCore
+  vtkFiltersSources
+  vtkInteractionStyle
+  vtkRenderingContextOpenGL2
+  vtkRenderingCore
+  vtkRenderingFreeType
+  vtkRenderingGL2PSOpenGL2
+  vtkRenderingOpenGL2 QUIET)
+if (NOT VTK_FOUND)
+  message("Skipping vtk_hello_world: ${VTK_NOT_FOUND_MESSAGE}")
+  return ()
+endif()
+message (STATUS "VTK_VERSION: ${VTK_VERSION}")
+if (VTK_VERSION VERSION_LESS "8.90.0")
+  # old system
+  include(${VTK_USE_FILE})
+  add_executable(vtk_hello_world MACOSX_BUNDLE vtk_hello_world.cxx )
+  target_link_libraries(vtk_hello_world PRIVATE ${VTK_LIBRARIES})
+else ()
+  # include all components
+  add_executable(vtk_hello_world MACOSX_BUNDLE vtk_hello_world.cxx )
+  target_link_libraries(vtk_hello_world PRIVATE ${VTK_LIBRARIES})
+  # vtk_module_autoinit is needed
+  vtk_module_autoinit(
+    TARGETS vtk_hello_world
+    MODULES ${VTK_LIBRARIES}
+    )
+endif () 
+```
+
+---
+
+# `VTK` - Hello world !
+
+## .hcenter[Shell session]
+.hcenter[
+<asciinema-player src="scripts/vtk_cpp.cast"></asciinema-player>
+]
+
+---
+
+# `VTK` - Hello world !
+
+## .hcenter[\[vtk/vtk_hello_world.py\]]
+```Python
+#!/usr/bin/env python3
+
+import vtk
+
+# source
+cylinder = vtk.vtkCylinderSource()
+
+# mapper
+cylinderMapper = vtk.vtkPolyDataMapper()
+cylinderMapper.SetInputConnection(cylinder.GetOutputPort())
+
+# actor
+cylinderActor = vtk.vtkActor()
+cylinderActor.SetMapper(cylinderMapper)
+cylinderActor.RotateX(30.0)
+
+# renderer
+ren = vtk.vtkRenderer()
+
+# window
+renWin = vtk.vtkRenderWindow()
+renWin.AddRenderer(ren)
+
+# interactor
+iren = vtk.vtkRenderWindowInteractor()
+iren.SetRenderWindow(renWin)
+iren.Initialize()
+
+# add actor to renderer
+ren.AddActor(cylinderActor)
+
+# set window size and render
+renWin.SetSize(300, 300)
+renWin.Render()
+
+# start interactor loop
+iren.Start()
+```
+
+---
+
+# `VTK` - Cheatsheet
+
+## Default interactor events
+
+:arrow_right: Keypresses  
+* `j` / `t`: toggle between **joystick** and **trackball** modes.
+* `c` / `a`: toggle between **camera** and **actor** modes.
+* `3`: toggle **stereo** mode.
+* `e`: **exit** the application.
+* `f`: **fly** to the selected point.
+* `p`: select (**pick**) using the current `vtkCellPicker` instance.
+* `r`: **reset** the camera.
+* `s` / `w`: toggle between **surface** and **wireframe** modes.
+* `u`: launch a **user-defined** function.
+
+:arrow_right: Mouse buttons
+* `left`: **rotate**.
+* `middle`: **translate** (actor) or **pan** (camera).
+* `right`: **scale** (actor) or **zoom** (camera).
+
+---
+
+# `VTK` - External data / Datasets
+
+## `vtkDataObject` conversion and I/O
+:arrow_right: `Source` objects produce `vtkDataObject` instances of given types  
+:arrow_right: `Filter` objects can **change the type** of a `vtkDataObject`  
+:arrow_right: A `Source` object which reads external data is called a **`Reader`**  
+:arrow_right: A `Mapper` object which exports data is called a **`Writer`**  
+
+:bulb: Some `Source` objects do not need external data  
+
+.vspace[]
+
+## `vtkDataSet` objects
+:arrow_right: Different object types depending on the dataset properties:
+* type of the data
+* (un)structured nature of the data
+* (un)regularity of the mesh
+* ...
+
+---
+
+# `VTK` - `vtkDataSet` classes
+
+## `VTK` main datasets
+
+.hcenter.w90[![](images/datasets.png)]
+
+.hcenter[
+| Class                 | Topology | Geometry       | Defined by             |
+| :-------------------- | :------- | :------------- | :--------------------- |
+| `vtkImageData`        | regular  | regular        | dimensions             |
+| `vtkRectilinearGrid`  | regular  | semi-regular   | x- and y- values       |
+| `vtkStructuredGrid`   | regular  | unregular      | points + neighbors     |
+| `vtkPolyData`         | cells    | polys + points | points + polys + cells |
+| `vtkUnstructuredGrid` | cells    | points         | points + cells         |
+]
+
+---
+
+# `VTK` - Cell types
+
+.hcenter.w50[![](images/vtk_cells.png)]
+
+---
+
+# `VTK` - `vtkDataSet` classes
+
+.hcenter.w100.mermaid.shadow[
+    graph RL
+    B(vtkHyperTreeGrid) --> A(vtkDataSet)
+    A --> Z(vtkDataObject)
+    C(vtkImageData) --> A
+    D(vtkRectilinearGrid) --> A
+    E(vtkPointSet) --> A
+    F(vtkStructuredPoints) --> C
+    G(vtkUniformGrid) --> C
+    H(vtkLabelHierarchy) --> E
+    I(vtkPath) --> E
+    J(vtkPolyData) --> E
+    K(vtkStructuredGrid) --> E
+    L(vtkUnstructuredGridBase) --> E
+    M(vtkMappedUnstructuredGrid) --> L
+    N(vtkUnstructuredGrid) --> L
+    style A fill:#2A2
+]
+
+---
+
+# `VTK` - File formats
+
+:arrow_right: [Reference document](https://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf) on `VTK` file formats.
+
+.vspace[]
+
+.hcenter[
+| Name              | Extension | Type     | Resulting class       | Structured ? |
+| :---------------- | :-------: | :------: | :-------------------- | :----------: |
+| ImageData         | `.vti`    | Serial   | `vtkImageData`        | yes          |
+| PolyData          | `.vtp`    | Serial   | `vtkPolyData`         | no           |
+| RectilinearGrid   | `.vtr`    | Serial   | `vtkRectilinearGrid`  | yes          |
+| StructuredGrid    | `.vts`    | Serial   | `vtkStructuredGrid`   | yes          |
+| UnstructuredGrid  | `.vtu`    | Serial   | `vtkUnstructuredGrid` | no           |
+| PImageData        | `.pvti`   | Parallel | `vtkImageData`        | yes          |
+| PPolyData         | `.pvtp`   | Parallel | `vtkPolyData`         | no           |
+| PRectilinearGrid  | `.pvtr`   | Parallel | `vtkRectilinearGrid`  | yes          |
+| PUnstructuredGrid | `.pvtu`   | Parallel | `vtkUnstructuredGrid` | no           |
+| PStructuredGrid   | `.pvts`   | Parallel | `vtkStructuredGrid`   | yes          |
+]
+
+## Versions
+
+:arrow_right: For each format, two versions are available: **Legacy** and **`XML`**  
+:arrow_right: **Legacy** versions **are easy** to write but slightly verbose  
+:arrow_right: **`XML`** versions are **difficult to write** but less (**or more**) verbose  
+:bulb: XML versions can be **parallelized**
+
+---
+
+# `VTK` - `vtkDataSet` classes with a corresponding `Reader`
+
+.hcenter.w100.mermaid.shadow[
+    graph RL
+    B(vtkHyperTreeGrid) --> A(vtkDataSet)
+    A --> Z(vtkDataObject)
+    C(vtkImageData) --> A
+    D(vtkRectilinearGrid) --> A
+    E(vtkPointSet) --> A
+    F(vtkStructuredPoints) --> C
+    G(vtkUniformGrid) --> C
+    H(vtkLabelHierarchy) --> E
+    I(vtkPath) --> E
+    J(vtkPolyData) --> E
+    K(vtkStructuredGrid) --> E
+    L(vtkUnstructuredGridBase) --> E
+    M(vtkMappedUnstructuredGrid) --> L
+    N(vtkUnstructuredGrid) --> L
+    style A fill:#2A2
+    style C fill:#A22
+    style D fill:#A22
+    style J fill:#A22
+    style K fill:#A22
+    style N fill:#A22
+]
+
+---
+
+# `VTK` - `PyEVTK` module
+
+.noflex[
+.rightf.shadow.w30[![](images/salvation.png)]
+
+## `PyEVTK` module
+
+:arrow_right: Allows to **easily** write `VTK` files for the main `vtkDataSet` classes:
+* points
+* structured grid
+* rectilinear grid
+* image
+
+:arrow_right: **directly from numpy arrays**  
+:arrow_right: **no `VTK` dependency**  
+:arrow_right: good performances
+]
+
+.block[
+* Repository: [https://github.com/paulo-herrera/PyEVTK](https://github.com/paulo-herrera/PyEVTK)
+* License: `MIT` ?
+]
+
+---
+
+# `VTK` - `PyEVTK` supported `vtkDataSet` classes
+
+.hcenter.w100.mermaid.shadow[
+    graph RL
+    B(vtkHyperTreeGrid) --> A(vtkDataSet)
+    A --> Z(vtkDataObject)
+    C(vtkImageData) --> A
+    D(vtkRectilinearGrid) --> A
+    E(vtkPointSet) --> A
+    F(vtkStructuredPoints) --> C
+    G(vtkUniformGrid) --> C
+    H(vtkLabelHierarchy) --> E
+    I(vtkPath) --> E
+    J(vtkPolyData) --> E
+    K(vtkStructuredGrid) --> E
+    L(vtkUnstructuredGridBase) --> E
+    M(vtkMappedUnstructuredGrid) --> L
+    N(vtkUnstructuredGrid) --> L
+    style A fill:#2A2
+    style C fill:#A22
+    style D fill:#A22
+    style J fill:#A22
+    style K fill:#A22
+    style N fill:#A22
+]
+
+---
+
+class: top
+
+.vspace[]
+
+# `VTK` - Mandelbrot set
+
+## Definition
+
+--
+
+Let us define the function `\(f_c(z)\)` as
+
+`$$\forall (z, c) \in \mathbb{C}^2,\, f_c(z) \equiv z^2 + c.$$`
+
+We then define the series `\(z^{(c)}_n\)` as
+
+`$$\forall (n, c) \in \mathbb{N}^* \times \mathbb{C},\, z^{(c)}_n \equiv f_c(z_{n-1}) \textrm{ and } z^{(c)}_0 \equiv 0.$$`
+
+The set of `\(c\)` complex numbers for which the `\(z^{(c)}_n\)` series **does not diverge** is called the **Mandelbrot set**.
+
+.hcenter.shadow.w40[![](images/mandelbrot_set.png)]
+
+---
+
+# `VTK` - `PyEVTK` module
+
+## .hcenter[\[vtk/pyevtk_image.py\]]
+```Python
+#!/usr/bin/env python3
+
+import numpy as np
+from pyevtk.hl import imageToVTK
+
+def mandelbrot_set(X, Y, maxiter, horizon = 2.0):
+  C = X + Y[:, None] * 1j
+  N = np.zeros(C.shape, dtype = int)
+  Z = np.zeros(C.shape, np.complex64)
+  for n in range(maxiter):
+    if n % (maxiter / 10) == 0:
+      print('progress: %d/%d' % (n, maxiter))
+    I = np.less(abs(Z), horizon)
+    N[I] = n
+    Z[I] = Z[I] ** 2 + C[I]
+  return Z.transpose(), N.transpose()
+
+nx = 800
+ny = 600
+x = np.linspace(-2.25, 0.75, nx, dtype=np.float32)
+y = np.linspace(-1.25, 1.25, ny, dtype=np.float32)
+
+Z, N = mandelbrot_set(x, y, 2000, 2.0)
+
+filename = 'mandel_image'
+
+*imageToVTK(filename, pointData = {'N': N.astype(np.float32).reshape((nx, ny, 1), order = 'C')})
+
+print('%s.vti generated' % (filename))
+```
+
+---
+
+# `VTK` - `PyEVTK` module
+
+## .hcenter[Shell session]
+
+```shell
+$ ./pyevtk_image.py 
+progress: 0/2000
+progress: 200/2000
+progress: 400/2000
+progress: 600/2000
+progress: 800/2000
+progress: 1000/2000
+progress: 1200/2000
+progress: 1400/2000
+progress: 1600/2000
+progress: 1800/2000
+mandel_image.vti generated
+```
+
+:arrow_right: The generated file `mandel_image.vti` is of type `XML` with binary data:
+
+##.hcenter[\[mandel_image.vti\]]
+
+```xml
+<?xml version="1.0"?>
+<VTKFile byte_order="LittleEndian" version="1.0" type="ImageData" header_type="UInt64">
+<ImageData Origin="0.0 0.0 0.0 " WholeExtent="0 799 0 599 0 0" Spacing="1.0 1.0 1.0 ">
+<Piece Extent="0 799 0 599 0 0">
+<PointData scalars="N">
+<DataArray NumberOfComponents="1" offset="0" type="Float32" Name="N" format="appended"/>
+</PointData>
+</Piece>
+</ImageData>
+<AppendedData encoding="raw">
+[...]
+</AppendedData>
+</VTKFile>
+```
+
+---
+
+# `VTK` - `PyEVTK` module
+
+:arrow_right: The file `mandel_image.vti` can now be opened by the corresponding `Reader`.
+
+## .hcenter[\[vtk/vtk_load_image.py\]]
+
+.row[
+.column.w48[
+```Python
+#!/usr/bin/env python3
+
+# generate 'mandel_image.vti' first !
+import vtk
+
+# source
+reader = vtk.vtkXMLImageDataReader()
+reader.SetFileName('mandel_image.vti')
+reader.Update()
+
+# Set active scalars
+pointData = reader.GetOutput().GetPointData()
+pointData.SetActiveScalars('N')
+
+# mapper
+mapper = vtk.vtkDataSetMapper()
+mapper.SetInputConnection(reader.GetOutputPort())
+mapper.SetScalarRange(0.0, 40.0)
+
+# actor
+actor = vtk.vtkActor()
+actor.SetMapper(mapper)
+```
+]
+.column.w48[
+```Python
+# renderer
+ren = vtk.vtkRenderer()
+ren.AddActor(actor)
+ren.SetBackground(0, 0, 0)
+
+# window
+renWin = vtk.vtkRenderWindow()
+renWin.AddRenderer(ren)
+
+# interactor
+iren = vtk.vtkRenderWindowInteractor()
+iren.SetRenderWindow(renWin)
+iren.Initialize()
+
+# set window size and render
+renWin.SetSize(300, 300)
+renWin.Render()
+
+# start interactor loop
+iren.Start()
+```
+]
+]
+
+:arrow_right: A specific interactor style `vtkInteractorStyleImage` is used in this example.
+
+---
+
+# `VTK` - `PyEVTK` module
+
+## .hcenter[\[vtk/pyevtk_grid.py\]]
+```Python
+#!/usr/bin/env python3
+
+import numpy as np
+from pyevtk.hl import gridToVTK
+
+def mandelbrot_set(X, Y, maxiter, horizon = 2.0):
+  C = X + Y[:, None] * 1j
+  N = np.zeros(C.shape, dtype = int)
+  Z = np.zeros(C.shape, np.complex64)
+  for n in range(maxiter):
+    if n % (maxiter / 10) == 0:
+      print('progress: %d/%d' % (n, maxiter))
+    I = np.less(abs(Z), horizon)
+    N[I] = n
+    Z[I] = Z[I] ** 2 + C[I]
+  return Z.transpose(), N.transpose()
+
+nx = 800
+ny = 600
+x = np.linspace(-2.25, 0.75, nx, dtype=np.float32)
+y = np.linspace(-1.25, 1.25, ny, dtype=np.float32)
+z = np.linspace(0.0, 1.0, 1, dtype=np.float32)
+
+Z, N = mandelbrot_set(x, y, 2000, 2.0)
+
+filename = 'mandel_grid'
+
+gridToVTK(filename, x, y, z, pointData = {'N': N.reshape((nx, ny, 1), order = 'C')})
+
+print('%s.vtr generated' % (filename))
+```
+
+---
+
+# `VTK` - `PyEVTK` module
+
+## .hcenter[Shell session]
+
+```shell
+$ ./pyevtk_grid.py 
+progress: 0/2000
+progress: 200/2000
+progress: 400/2000
+progress: 600/2000
+progress: 800/2000
+progress: 1000/2000
+progress: 1200/2000
+progress: 1400/2000
+progress: 1600/2000
+progress: 1800/2000
+mandel_grid.vtr generated
+```
+
+:arrow_right: The generated file `mandel_grid.vtr` is of type `XML` with binary data:
+
+##.hcenter[\[mandel_grid.vtr\]]
+
+```xml
+<?xml version="1.0"?>
+<VTKFile byte_order="LittleEndian" version="1.0" type="RectilinearGrid" header_type="UInt64">
+<RectilinearGrid WholeExtent="0 799 0 599 0 0">
+<Piece Extent="0 799 0 599 0 0">
+<Coordinates>
+<DataArray NumberOfComponents="1" offset="0" type="Float32" Name="x_coordinates" format="appended"/>
+<DataArray NumberOfComponents="1" offset="3208" type="Float32" Name="y_coordinates" format="appended"/>
+<DataArray NumberOfComponents="1" offset="5616" type="Float32" Name="z_coordinates" format="appended"/>
+</Coordinates>
+<PointData scalars="N">
+<DataArray NumberOfComponents="1" offset="5628" type="Int64" Name="N" format="appended"/>
+</PointData>
+</Piece>
+</RectilinearGrid>
+<AppendedData encoding="raw">
+[...]
+</AppendedData>
+</VTKFile>
+```
+
+---
+
+# `VTK` - `PyEVTK` module
+
+:arrow_right: The file `mandel_grid.vtr` can now be opened by the corresponding `Reader`.
+
+## .hcenter[\[vtk/vtk_load_grid.py\]]
+
+.row[
+.column.w48[
+```Python
+#!/usr/bin/env python3
+
+# generate 'mandel_grid.vtr' first !
+import vtk
+
+# source
+r = vtk.vtkXMLRectilinearGridReader()
+r.SetFileName('mandel_grid.vtr')
+
+# mapper
+mandelMapper = vtk.vtkDataSetMapper()
+mandelMapper.SetInputConnection(r.GetOutputPort())
+mandelMapper.SetScalarModeToUsePointFieldData()
+mandelMapper.SelectColorArray('N')
+mandelMapper.SetScalarRange(0.0, 40.0)
+
+# actor
+mandelActor = vtk.vtkActor()
+mandelActor.SetMapper(mandelMapper)
+```
+]
+.column.w48[
+```Python
+# renderer
+ren = vtk.vtkRenderer()
+ren.AddActor(mandelActor)
+
+# window
+renWin = vtk.vtkRenderWindow()
+renWin.AddRenderer(ren)
+
+# interactor
+iren = vtk.vtkRenderWindowInteractor()
+iren.SetRenderWindow(renWin)
+iren.Initialize()
+
+# set window size and render
+renWin.SetSize(300, 300)
+renWin.Render()
+
+# start interactor loop
+iren.Start()
+```
+]
+]
+
+:arrow_right: Note the differences between `vtk_load_image.py` and `vtk_load_grid.py`.
+
+---
+
+# `VTK` - `vtkXMLPolyDataWriter`
+
+:arrow_right: In this example, we use a `Writer` instead of the `PyEVTK` module.
+
+## .hcenter[\[vtk/vtk_save_polydata.py\]]
+
+.row[
+.column.w48[
+```Python
+#!/usr/bin/env python3
+
+import numpy as np
+import vtk
+
+def mandelbrot_set(X, Y, maxiter, horizon=2.0):
+  C = X + Y[:, None]*1j
+  N = np.zeros(C.shape, dtype=int)
+  Z = np.zeros(C.shape, np.complex64)
+  for n in range(maxiter):
+    if n % (maxiter / 10) == 0:
+      print('progress: %d/%d' % (n, maxiter))
+    I = np.less(abs(Z), horizon)
+    N[I] = n
+    Z[I] = Z[I]**2 + C[I]
+  return Z.transpose(), N.transpose()
+
+nx = 800
+ny = 600
+x = np.linspace(-2.25, 0.75, nx, dtype=np.float32)
+y = np.linspace(-1.25, 1.25, ny, dtype=np.float32)
+
+Z, N = mandelbrot_set(x, y, 2000, 2.0 ** 40)
+
+filename = 'mandel_polydata'
+
+points = vtk.vtkPoints()
+vertices = vtk.vtkCellArray()
+
+d0 = vtk.vtkFloatArray()
+d0.SetName('N')
+```
+]
+.column.w48[
+```Python
+d0.SetNumberOfTuples(nx * ny)
+d0.SetNumberOfComponents(1)
+
+n = 0
+for ix, vx in enumerate(x):
+  if ix % (nx / 10) == 0:
+    print('saving: %d/%d' % (ix, nx))
+
+  for iy, vy in enumerate(y):
+    id = points.InsertNextPoint(vx, vy, 0)
+    d0.SetComponent(n, 0, N[(ix, iy)])
+    vertices.InsertNextCell(1)
+    vertices.InsertCellPoint(id)
+    n += 1
+
+polydata = vtk.vtkPolyData()
+polydata.SetPoints(points)
+polydata.GetPointData().AddArray(d0)
+polydata.GetPointData().SetScalars(d0)
+polydata.SetVerts(vertices)
+
+delaunay = vtk.vtkDelaunay2D()
+delaunay.SetInputData(polydata)
+delaunay.Update()
+
+writer = vtk.vtkXMLPolyDataWriter()
+writer.SetFileName('%s.vtp' % (filename))
+writer.SetInputData(delaunay.GetOutput())
+writer.Write()
+
+print('%s.vtp generated' % (filename))
+```
+]
+]
+
+---
+
+# `VTK` - `vtkXMLPolyDataWriter`
+
+:arrow_right: A **Delaunay triangulation** is used to generate the mesh topology.
+
+## .hcenter[Shell session]
+```shell
+$ ./vtk_save_polydata.py
+progress: 0/2000
+progress: 200/2000
+progress: 400/2000
+progress: 600/2000
+progress: 800/2000
+progress: 1000/2000
+progress: 1200/2000
+progress: 1400/2000
+progress: 1600/2000
+progress: 1800/2000
+saving: 0/800
+saving: 80/800
+saving: 160/800
+saving: 240/800
+saving: 320/800
+saving: 400/800
+saving: 480/800
+saving: 560/800
+saving: 640/800
+saving: 720/800
+mandel_polydata.vtp generated
+```
+
+---
+
+# `VTK` - `vtkXMLPolyDataWriter`
+
+:arrow_right: The file `mandel_polydata.vtp` can now be opened by the corresponding `Reader`.
+
+## .hcenter[\[vtk/vtk_load_polydata.py\]]
+
+.row[
+.column.w48[
+```Python
+#!/usr/bin/env python3
+
+# generate 'mandel_polydata.vtp' first !
+import vtk
+
+# source
+*r = vtk.vtkXMLPolyDataReader()
+*r.SetFileName('mandel_polydata.vtp')
+
+# mapper
+mandelMapper = vtk.vtkDataSetMapper()
+mandelMapper.SetInputConnection(r.GetOutputPort())
+mandelMapper.SetScalarModeToUsePointFieldData()
+mandelMapper.SelectColorArray('N')
+mandelMapper.SetScalarRange(0.0, 40.0)
+
+# actor
+mandelActor = vtk.vtkActor()
+mandelActor.SetMapper(mandelMapper)
+```
+]
+.column.w48[
+```Python
+# renderer
+ren = vtk.vtkRenderer()
+ren.AddActor(mandelActor)
+
+# window
+renWin = vtk.vtkRenderWindow()
+renWin.AddRenderer(ren)
+
+# interactor
+iren = vtk.vtkRenderWindowInteractor()
+iren.SetRenderWindow(renWin)
+iren.Initialize()
+
+# set window size and render
+renWin.SetSize(300, 300)
+renWin.Render()
+
+# start interactor loop
+iren.Start()```
+]
+]
+
+:arrow_right: Except from the `Reader`, the code is **the same** as in `vtk_load_polydata.py`.
+
+---
+
+# `VTK` - `PyEVTK` module vs. `VTK` `Writer`
+
+## Using a `VTK` `Writer`
+:+: allows to use `Filters` for data processing (delaunay...)  
+:+: allows to use custom data format  
+:warning: is complex and error-prone  
+:warning: introduces a dependency to `VTK`  
+
+## Using the `PyEVTK` module
+:+: is easy and robust  
+:+: does not introduce a dependency to `VTK`  
+:warning: does not allow to use `Filters` for data processing  
+:warning: does not allow to use custom data format  
+
+## Conclusion
+:arrow_right: If there is no need to perform some processing in the calculation code, prefer the use of the `PyEVTK` module to export data using standard `VTK` dataset types.
+
+
+---
+
+# `VTK` - `Qt` integration
+
+## .hcenter[\[vtk/vtk_qt.py\]]
+```Python
+#!/usr/bin/env python3
+import sys
+import vtk
+from PyQt5 import QtCore, QtGui
+from PyQt5 import Qt
+
+from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+
+class MainWindow(Qt.QMainWindow):
+  def __init__(self, parent = None):
+    Qt.QMainWindow.__init__(self, parent)
+
+    self.frame = Qt.QFrame()
+    self.vl = Qt.QVBoxLayout()
+    self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
+*   self.vl.addWidget(self.vtkWidget)
+
+    self.ren = vtk.vtkRenderer()
+    self.vtkWidget.GetRenderWindow().AddRenderer(self.ren)
+    self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
+
+    [...]
+
+*   self.frame.setLayout(self.vl)
+*   self.setCentralWidget(self.frame)
+*   self.show()
+*   self.iren.Initialize()
+*   self.iren.Start()
+
+app = Qt.QApplication(sys.argv)
+window = MainWindow()
+sys.exit(app.exec_())
+```
+
+---
+
+# `VTK` - Conclusions
+
+## To sum up...
+:+: Writing a `VTK` `Writer` in `Python` with the `PyEVTK` module is **easy**  
+:+: Writing a `VTK` `Writer` in `Python` is **rather easy**  
+:+: Writing a `VTK` visualization pipeline in `Python` is **rather easy**  
+:warning: Using `VTK` in `C++` **may be complex**  
+:warning: Integrating `VTK` in an application in `Qt` **may be complex**  
+:warning: Knowing how to manage `VTK` objects, methods and datatypes is **difficult**:
+* `VTK` documentation may be hard to find and understand
+* several versions of `VTK` exist and are not compatible  
+* working `VTK` examples may be hard to find
+
+.vspace[]
+
+.block[
+## My opinion as a scientist
+
+For a scientist, playing with the visualization pipeline to post-process results is a **never-ending game**.  
+Re-writing a program (even in a nice language like `Python`) to change the pipeline is **not convenient**.  
+:arrow_right: This is why using a `VTK` front-end is preferable when exploring the pipeline possibilities.
+
+When a pipeline has been found for a given post-processing or visualization, then the corresponding `C++` or `Python` code can be written.
+]
+
+---
+
+# `VTK` - Front-ends
+
+.row[
+.column.middle.w70[
+## `Mayavi`
+.block[
+* Repository: [https://github.com/enthought/mayavi](https://github.com/enthought/mayavi)
+* Website: [https://docs.enthought.com/mayavi/mayavi/](https://docs.enthought.com/mayavi/mayavi/)
+* License: `BSD`
+]
+]
+.column.w25.middle.shadow[![](images/mayavi.png)]
+]
+
+.vspace[]
+
+.row[
+.column.middle.w70[
+## `Paraview`
+.block[
+* Repository: [https://gitlab.kitware.com/paraview/paraview](https://gitlab.kitware.com/paraview/paraview)
+* Website: [https://www.paraview.org](https://www.paraview.org)
+* License: `BSD`
+]
+]
+.column.w25.middle.shadow[![](images/paraview.png)]
+]
+
+
+</textarea>
+
+    <script src="core/javascript/remark.js"></script>
+    <script src="core/javascript/katex.min.js"></script>
+    <script src="core/javascript/auto-render.min.js"></script>
+    <script src="core/javascript/emojify.js"></script>
+    <script src="core/javascript/mermaid.js"></script>
+    <script src="core/javascript/term.js"></script>
+    <script src="core/javascript/jquery-2.1.1.min.js"></script>
+    <script src="core/javascript/extend-jquery.js"></script>
+    <script src="core/javascript/gitgraph.js"></script>
+    <script src="core/javascript/asciinema-player.js"></script>
+    <script>
+
+    // === Remark.js initialization ===
+    var slideshow = remark.create({
+      highlightStyle: 'monokai',
+      countIncrementalSlides: false,
+      highlightLines: true
+    });
+
+    // === Mermaid.js initialization ===
+    mermaid.initialize({
+      startOnLoad: false,
+      cloneCssStyles: false,
+      flowchart:{
+        height: 50
+      },
+      sequenceDiagram:{
+        width: 110,
+        height: 30
+      }
+    });
+
+    function initMermaid(s) {
+      var diagrams = document.querySelectorAll('.mermaid');
+      var i;
+      for(i=0;i<diagrams.length;i++){
+        if(diagrams[i].offsetWidth>0){
+          mermaid.init(undefined, diagrams[i]);
+        }
+      }
+    }
+
+    slideshow.on('afterShowSlide', initMermaid);
+    initMermaid(slideshow.getSlides()[slideshow.getCurrentSlideIndex()]);
+
+    
+    // === Emojify.js initialization ===
+    emojify.run();
+
+    renderMathInElement(document.body,{delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}], ignoredTags: [] });
+
+    </script>
+  </body>
+</html>
+
