@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PSA</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="core/fonts/mono.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/animate.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/cinescript.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/style_core.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/mermaid.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/gitgraph.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/style_ensiie.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/katex.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/asciinema-player.css"> 
+  </head>
+  <body>
+    <textarea id="source" readonly>
+
+layout: true
+class: animated fadeIn middle numbers
+
+.footnote[
+`PSA` - N. Dubray - ENSIIE - 2024 - [:book:](../index.html)
+]
+
+---
+
+# Python virtual environments & package management
+
+.hcenter.shadow.w100[![](images/vr.jpg)]
+
+---
+
+# Introduction
+
+## Possible scenarios
+
+1. a Python project needs some specific dependencies to be used
+1. a Python project has a bug in a specific environment and you have to fix it
+1. a Python project has non-orthogonal dependencies vs. another project (**or your system**)
+1. a Python project has a dependency that breaks another project (**or your system**)
+
+:bulb: How about having **separate** Python environments with specific dependencies ?  
+:arrow_right: **Virtual environments** to the rescue !
+
+## Virtual environments
+
+:arrow_right: allows to manage and use a full `Python` stack in a given directory.  
+:arrow_right: can also be used with non-Python tools/libraries.  
+
+## Other solutions
+
+:arrow_right: VM, containers, chroot, etc...  
+:arrow_right: These solutions offer **encapsulation mechanisms** compared to virtual environments.
+
+---
+
+# Virtual environments
+
+## Why use a virtual environment ?
+
+* to test a new version of a module without stopping a service using it:
+ * `criticalService` is running with `superModule==0.9.89`,
+ * you think that you have fixed a bug in `superModule==0.9.90`,
+ * you want to test `superModule==0.9.90` without stopping or changing `criticalService`...
+ * **variant:** use two different versions of the same module on the same system.
+* to reproduce a specific user environment (bug hunting):
+ * client: "I was using `py27` + `numpy==1.19.3` and it crashed !"
+ * you: "I tested with `py27` + `numpy=1.18.7` and it was fine !?"
+* to test a project in different environments :
+ * does it work with `py36` + `numpy==1.21.5` ?
+ * does it work with `py38` + `numpy==1.20.1` ?
+* to build a package in a "pure" environment:
+ * a heavily-tweaked module `superModule==0.9.89a` is deployed system-wide,
+ * you **do NOT want** it to alter the build process of your package...
+* to avoid breaking the system by mixing package versions:
+ * my project needs `setuptools==59.6.0`,
+ * so I install it **system-wide** (`apt install ...`),
+ * oops! I broke 30% of my Python system tools... (this is a fictionous example)...
+* etc...
+
+---
+
+# Module `venv` - Usage demo
+
+## If needed, install the Python `venv` module
+
+```bash
+$ sudo apt install python3-venv
+```
+
+:bulb: Install system-wide with the distribution package system.  
+:arrow_right: It should be installed by default on a standard Python installation (not like `virtualenv`).
+
+
+## Usage demo
+
+<pre><code><font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">which</font> python3
+/usr/bin/python3
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">which</font> pip3    
+/usr/bin/pip3
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">ls</font> myVenv                       
+ls: cannot access &apos;myVenv&apos;: No such file or directory
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">python3</font> -m venv myVenv     
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">ls</font> <u style="text-decoration-style:single">myVenv</u>
+<font color="#1A8FFF"><b>bin</b></font>  <font color="#1A8FFF"><b>include</b></font>  <font color="#1A8FFF"><b>lib</b></font>  <font color="#14FFFF"><b>lib64</b></font>  pyvenv.cfg
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">source</font> <u style="text-decoration-style:single">myVenv/bin/activate</u>
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">which</font> python3
+/tmp/myVenv/bin/python3
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">which</font> pip3   
+/tmp/myVenv/bin/pip3
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">deactivate</font>
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">which</font> python3
+/usr/bin/python3
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">which</font> pip3   
+/usr/bin/pip3
+</code></pre>
+
+---
+
+# Module `venv` - Main commands
+
+## Create the virtual environment  
+
+```bash
+$ python3 -m venv myVenv
+```
+
+:arrow_right: This creates the `myVenv` directory if needed.  
+
+## Activate the virtual environment  
+
+```bash
+$ source myVenv/bin/activate
+```
+
+:arrow_right: All "Python" commands will use the `venv` from now.  
+:bulb: There are other activation scripts for other shells in `myVenv/bin/`.  
+
+## De-activate the virtual envronment
+
+```bash
+$ deactivate
+```
+
+:arrow_right: This command has been defined by the sourced `activate*` script.
+
+---
+
+# Module `venv` - Different Python versions
+
+## Create a virtual environment for different Python versions
+
+<pre><code><font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00"><u style="text-decoration-style:single">sudo</u></font> <font color="#19CB00">apt</font> install python3.11-venv
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following NEW packages will be installed:
+  python3.11-venv
+0 upgraded, 1 newly installed, 0 to remove and 1 not upgraded.
+Need to get 5,730 B of archives.
+After this operation, 28.7 kB of additional disk space will be used.
+Get:1 http://fr.archive.ubuntu.com/ubuntu jammy-updates/universe amd64 python3.11-venv amd64 3.11.0~rc1-1~22.04 [5,730 B]
+Fetched 5,730 B in 0s (43.0 kB/s)<font color="#CECB00">           </font>
+Selecting previously unselected package python3.11-venv.
+(Reading database ... 528210 files and directories currently installed.)
+Preparing to unpack .../python3.11-venv_3.11.0~rc1-1~22.04_amd64.deb ...
+Unpacking python3.11-venv (3.11.0~rc1-1~22.04) ...
+Setting up python3.11-venv (3.11.0~rc1-1~22.04) ...
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">python3.11</font> -m venv myVenv_cpy311
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">:</font><font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">source</font> <u style="text-decoration-style:single">myVenv_cpy311/bin/activate</u>
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv_cpy311</font>):<font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">python</font> -V                       
+Python 3.11.0rc1
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv_cpy311</font>):<font color="#14FFFF">/tmp</font><font color="#FFFFFF">]</font> <font color="#19CB00">pip</font> -V       
+pip 22.0.2 from /tmp/myVenv_cpy311/lib/python3.11/site-packages/pip (python 3.11)
+</code></pre>
+
+:arrow_right: A `venv` will use the same Python interpreter as the one used to create it (it is a symlink).
+
+---
+
+class: top
+
+# Module `venv` - Package example
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+## .hcenter[`C++` + `Armadillo` + `swig` + `setuptools` = Python module]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30[
+.tree[
+armanpy_python3
+* include
+    * armanpy
+        * armanpy.i
+        * armanpy.hpp
+        * armanpy_1d.i
+        * armanpy_2d.i
+        * armanpy_3d.i
+        * numpy.i
+* **myclass.cpp** :arrow_left:
+* myclass.h
+* setup.py
+* testmod3.i
+* test.py
+]
+]
+.column.w70.middle[
+## .hcenter[`myclass.cpp`]
+```c++
+#include "myclass.h"
+
+Myclass::Myclass(arma::mat _mat) : myMat(_mat)
+{
+}
+
+arma::mat Myclass::testArma(arma::mat A)
+{
+  return A.t();
+}
+
+arma::mat Myclass::getEmptyArma(int n)
+{
+  return arma::zeros(n, n);
+}
+```
+]
+]
+
+---
+
+class: top
+
+# Module `venv` - Package example
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+## .hcenter[`C++` + `Armadillo` + `swig` + `setuptools` = Python module]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30[
+.tree[
+armanpy_python3
+* include
+    * armanpy
+        * armanpy.i
+        * armanpy.hpp
+        * armanpy_1d.i
+        * armanpy_2d.i
+        * armanpy_3d.i
+        * numpy.i
+* myclass.cpp
+* **myclass.h** :arrow_left:
+* setup.py
+* testmod3.i
+* test.py
+]
+]
+.column.w70.middle[
+## .hcenter[`myclass.h`]
+```c++
+#ifndef MYCLASS_H
+#define MYCLASS_H
+
+#include <armadillo>
+
+class Myclass
+{
+  public:
+  Myclass(arma::mat _mat = arma::mat());
+  arma::mat testArma(arma::mat);
+  arma::mat getEmptyArma(int n);
+  arma::mat myMat;
+};
+
+#endif
+```
+]
+]
+
+---
+
+class: top
+
+# Module `venv` - Package example
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+## .hcenter[`C++` + `Armadillo` + `swig` + `setuptools` = Python module]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30[
+.tree[
+armanpy_python3
+* include
+    * armanpy
+        * armanpy.i
+        * armanpy.hpp
+        * armanpy_1d.i
+        * armanpy_2d.i
+        * armanpy_3d.i
+        * numpy.i
+* myclass.cpp
+* myclass.h
+* **setup.py** :arrow_left:
+* testmod3.i
+* test.py
+]
+]
+.column.w70.middle[
+## .hcenter[`setup.py`]
+```python
+from setuptools import setup, Extension
+
+module1 = Extension('_testmod3',
+                    include_dirs = ['./include/armanpy/'],
+                    libraries = ['m', 'z', 'armadillo'],
+                    sources = ['testmod3.i', 'myclass.cpp'],
+                    swig_opts = ["-c++", "-Wall", "-I.", "-I./include/armanpy/"])
+
+setup (name = 'package_test',
+       py_modules = ['testmod3'],
+       version = '1.0',
+       description = 'This is a test package',
+       ext_modules = [module1])
+```
+]
+]
+
+---
+
+class: top
+
+# Module `venv` - Package example
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+## .hcenter[`C++` + `Armadillo` + `swig` + `setuptools` = Python module]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30[
+.tree[
+armanpy_python3
+* include
+    * armanpy
+        * armanpy.i
+        * armanpy.hpp
+        * armanpy_1d.i
+        * armanpy_2d.i
+        * armanpy_3d.i
+        * numpy.i
+* myclass.cpp
+* myclass.h
+* setup.py
+* **testmod3.i** :arrow_left:
+* test.py
+]
+]
+.column.w70.middle[
+## .hcenter[`testmod3.i`]
+```swig
+%module testmod3
+%include "stl.i"
+%include "std_map.i"
+%include "std_string.i"
+%include "std_vector.i"
+%include "std_vectora.i"
+%include "exception.i"
+
+namespace std
+{
+  %template(map_string_int) map<string, int>;
+  %template(map_string_double) map<string, double>;
+  %template(map_string_string) map<string, string>;
+}
+
+%exception
+{
+[...]
+}
+
+%{
+#define SWIG_FILE_WITH_INIT
+#include "myclass.h"
+%}
+
+%include "armanpy.i"
+
+%include "myclass.h"
+```
+]
+]
+
+---
+
+class: top
+
+# Module `venv` - Package example
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+## .hcenter[`C++` + `Armadillo` + `swig` + `setuptools` = Python module]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30[
+.tree[
+armanpy_python3
+* include
+    * armanpy
+        * armanpy.i
+        * armanpy.hpp
+        * armanpy_1d.i
+        * armanpy_2d.i
+        * armanpy_3d.i
+        * numpy.i
+* myclass.cpp
+* myclass.h
+* setup.py
+* testmod3.i
+* **test.py** :arrow_left:
+]
+]
+.column.w70.middle[
+## .hcenter[`test.py`]
+```python
+#!/usr/bin/env python3
+
+import testmod3
+import numpy as np
+
+numpyArray = np.array([[0.1, 0.2], [0.3, 0.4]], dtype = np.float64, order = 'F')
+print("Initial object:")
+print(numpyArray)
+
+mc = testmod3.Myclass(numpyArray)
+print("Object in the C++ class (constructor with argument):")
+print(mc.myMat)
+
+mc = testmod3.Myclass()
+print("Object in the C++ class (empty constructor):")
+print(mc.myMat)
+
+
+a = mc.getEmptyArma(3)
+a[0,1] = 1.0
+print("Object returned by the C++ method getEmptyArma() and modified:")
+print(a)
+
+print("Object returned by the C++ method testArma() (transposition):")
+print(mc.testArma(a))
+```
+]
+]
+
+---
+
+# Module `venv` - Package example
+
+## .hcenter[Build and install the package in a `venv` with `setuptools`]
+
+.hcenter[
+<asciinema-player src="scripts/setuptools.cast"></asciinema-player>
+]
+
+:arrow_right: Installed packages are stored inside the `venv` directory.  
+:warning: This direct invocation of `setup.py` is **deprecated**. One must use **`pip`** instead.
+
+---
+
+# Module `venv` - Package example
+
+## .hcenter[Build and install the package in a `venv` with `pip`]
+
+.hcenter[
+<asciinema-player src="scripts/pip_module.cast"></asciinema-player>
+]
+
+:arrow_right: "`pip` is the **prefered** installer program."  
+:arrow_right: `pip` should be installed by default on a standard Python installation.
+
+---
+
+# Module `pip` - ???
+
+.hcenter.shadow.w70[![](images/fry.jpg)]
+
+## .hcenter[What was this "`pip install`" thing ?]
+
+
+---
+
+# Module `pip` - Install packages
+
+.hcenter[:arrow_right: `pip` is a package management system, dedicated to Python packages.]
+
+## :arrow_right: `pip` can build and install **local packages**  
+
+<pre><code><font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">armanpy_python3</font><font color="#FFFFFF">]</font> <font color="#19CB00">pip</font> install <u style="text-decoration-style:single">.</u>             
+Processing /tmp/armanpy_python3
+  Preparing metadata (setup.py) ... done
+Using legacy &apos;setup.py install&apos; for package-test, since package &apos;wheel&apos; is not installed.
+Installing collected packages: package-test
+  Running setup.py install for package-test ... done
+Successfully installed package-test-1.0</code></pre>
+
+
+## :arrow_right: `pip` can fetch, [build] and install **remote packages**  
+
+<pre><code> <font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">armanpy_python3</font><font color="#FFFFFF">]</font> <font color="#19CB00">pip</font> install numpy  
+Collecting numpy
+  Using cached numpy-1.24.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (17.3 MB)
+Installing collected packages: numpy
+Successfully installed numpy-1.24.3
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">armanpy_python3</font><font color="#FFFFFF">]</font> <font color="#19CB00">pip</font> install xkcd==2.4.0
+Collecting xkcd==2.4.0
+  Downloading xkcd-2.4.0.zip (14 kB)
+  Preparing metadata (setup.py) ... done
+Using legacy &apos;setup.py install&apos; for xkcd, since package &apos;wheel&apos; is not installed.
+Installing collected packages: xkcd
+  Running setup.py install for xkcd ... done
+Successfully installed xkcd-2.4.0</code></pre>
+
+:arrow_right: Use "`pip install package==x.y.z`" to install a **specific version** of a package.  
+:arrow_right: You can use "`python3 -m pip command`" instead of "`pip command`".  
+
+---
+
+# Module `pip` - Manage packages
+
+## :arrow_right: `pip` can **list** installed packages in the current `venv`  
+
+<pre><code><font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">armanpy_python3</font><font color="#FFFFFF">]</font> <font color="#19CB00">pip</font> list     
+Package      Version
+------------ -------
+numpy        1.24.3
+package-test 1.0
+pip          22.0.2
+setuptools   59.6.0
+xkcd         2.4.0</code></pre>
+
+## :arrow_right: `pip` can **uninstall** packages in the current `venv`  
+
+<pre><code><font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">armanpy_python3</font><font color="#FFFFFF">]</font> <font color="#19CB00">pip</font> uninstall package-test
+Found existing installation: package-test 1.0
+Uninstalling package-test-1.0:
+  Would remove:
+    /tmp/armanpy_python3/myVenv/lib/python3.10/site-packages/_testmod3.cpython-310-x86_64-linux-gnu.so
+    /tmp/armanpy_python3/myVenv/lib/python3.10/site-packages/package_test-1.0.egg-info
+    /tmp/armanpy_python3/myVenv/lib/python3.10/site-packages/testmod3.py
+Proceed (Y/n)? 
+  Successfully uninstalled package-test-1.0
+<font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">armanpy_python3</font><font color="#FFFFFF">]</font> <font color="#19CB00">pip</font> list                  
+Package    Version
+---------- -------
+numpy      1.24.3
+pip        22.0.2
+setuptools 59.6.0
+xkcd       2.4.0</code></pre>
+
+---
+
+# Module `pip` - Manage packages
+
+## :arrow_right: `pip` can **update** installed packages in the current `venv`  
+
+<pre><code><font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">armanpy_python3</font><font color="#FFFFFF">]</font> <font color="#19CB00">pip</font> install xkcd -U
+Requirement already satisfied: xkcd in ./myVenv/lib/python3.10/site-packages (2.4.0)
+Collecting xkcd
+  Using cached xkcd-2.4.2-py3-none-any.whl
+Installing collected packages: xkcd
+  Attempting uninstall: xkcd
+    Found existing installation: xkcd 2.4.0
+    Uninstalling xkcd-2.4.0:
+      Successfully uninstalled xkcd-2.4.0
+      Successfully installed xkcd-2.4.2</code></pre>
+
+
+## :arrow_right: `pip` can **list versions** of a given package  
+
+<pre><code><font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">armanpy_python3</font><font color="#FFFFFF">]</font> <font color="#19CB00">pip</font> install xkcd==     
+<font color="#CC0403">ERROR: Could not find a version that satisfies the requirement xkcd== (from versions: 2.0, 2.1, 2.2, 2.3, 2.3.1, 2.3.2, 2.3.3, 2.4.0, 2.4.1, 2.4.2)</font>
+<font color="#CC0403">ERROR: No matching distribution found for xkcd==</font>
+</code></pre>
+
+## :arrow_right: `pip` cannot **search** for available packages anymore :cry:  
+
+<pre><code><font color="#FFFFFF">[</font><font color="#FFFD00">dubrayn</font><font color="#FFFFFF">@</font><font color="#23FD00">dell5290</font><font color="#FFFFFF">(</font><font color="#FD28FF">myVenv</font>):<font color="#14FFFF">armanpy_python3</font><font color="#FFFFFF">]</font> <font color="#19CB00">pip</font> search xkcd    
+<font color="#CC0403">ERROR: XMLRPC request failed [code: -32500]</font>
+<font color="#CC0403">RuntimeError: PyPI no longer supports &apos;pip search&apos; (or XML-RPC search). Please use https://pypi.org/search (via a browser) instead. See https://warehouse.pypa.io/api-reference/xml-rpc.html#deprecated-methods for more information.</font>
+</code></pre>
+
+:arrow_right: As stated, go to `https://pypi.org/search` to search for packages.
+
+---
+
+# Module `pip` - "remote packages" ?
+
+.hcenter.shadow.w70[![](images/fry.jpg)]
+
+## .hcenter[Where do the remote packages come from ?]
+
+---
+
+# `PyPi` - The Python Package Index
+
+.hcenter.w40[![](images/logo-pypi.svg)]
+
+:arrow_right: "PyPi helps you find and install software **developed and shared** by the Python community."  
+:arrow_right: `https://pypi.org`
+
+---
+
+# `PyPi` - "by the Python community" ?
+
+.hcenter.w70[![](images/fry_happy.png)]
+
+## .hcenter[So I can share my Python packages ?]
+
+---
+
+class: top
+
+# `PyPi` - Creating a compliant package
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+## .hcenter[Pure Python module]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30.middle[
+.tree[
+pyexample
+* LICENSE
+* pyexample
+    * `__`init`__`.py
+    * module_test_0.py
+    * module_test_1.py
+    * module_test_2.py
+* README.rst
+* **setup.py** :arrow_left:
+]
+]
+.column.w70.middle[
+## .hcenter[`setup.py`]
+```python
+from setuptools import setup
+
+setup(
+    name='pyexample',
+    version='0.1.0',    
+    description='A example Python package',
+    url='https://github.com/shuds13/pyexample',
+    author='Stephen Hudson',
+    author_email='shudson@anl.gov',
+    license='BSD 2-clause',
+    packages=['pyexample'],
+    install_requires=['mpi4py>=2.0',
+                      'numpy',                     
+                      ],
+
+    classifiers=[
+        'Development Status :: 1 - Planning',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: BSD License',  
+        'Operating System :: POSIX :: Linux',        
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+    ],
+)
+```
+]
+]
+
+:arrow_right: Example inspired from [https://github.com/shuds13/pyexample](https://github.com/shuds13/pyexample)
+
+
+---
+
+class: top
+
+# `PyPi` - Creating a compliant package
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+## .hcenter[Pure Python module]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30.middle[
+.tree[
+pyexample
+* LICENSE
+* pyexample
+    * **`__`init`__`.py** :arrow_left:
+    * module_test_0.py
+    * module_test_1.py
+    * module_test_2.py
+* README.rst
+* setup.py
+]
+]
+.column.w70.middle[
+## .hcenter[`pyexample/__init__.py`]
+```python
+"""
+pyexample.
+
+An example python library.
+"""
+
+__version__ = "0.1.0"
+__author__ = 'Stephen Hudson'
+__credits__ = 'Argonne National Laboratory'
+
+```
+]
+]
+
+.hcenter[:warning: Two version numbers...]
+
+## Create a source distribution
+
+```bash
+$ python setup.py sdist
+```
+
+:arrow_right: This creates a `pyexample-0.1.0.tar.gz` file that can be distributed.  
+:arrow_right: To customize the content of the archive, you can use a `MANIFEST.in` file (cf. next slides).  
+:arrow_right: To send the file to `PyPi`, use the `twine` module (cf. next slides).  
+
+
+---
+
+# `PyPi` - Create a compliant package
+
+.hcenter.shadow.w70[![](images/fry.jpg)]
+
+## .hcenter[I want to use `C++`, `Armadillo` and `swig` in my Python module !]
+
+---
+
+# `PyPi` - Create a compliant binary package
+
+## Binary packages
+
+* They are called **`wheels`** (the `egg` format is obsolete now).  
+* They (obviously) depend on the architecture and the environment.  
+* They speed up the distribution process by avoiding any recompilation.  
+
+:arrow_right: Let's build and distribute a `wheel` file then ?  
+
+:warning: `PyPi` forbids the upload of generic linux binary wheels.  
+
+:arrow_right: Only a "standard" `wheel` binary format is accepted by `PyPi`: **`manylinux`**
+
+## The `manylinux` project
+
+* [https://github.com/pypa/manylinux](https://github.com/pypa/manylinux)  
+* Goal: "to provide a convenient way to distribute binary Python extensions as wheels on Linux".  
+* They provide a small set of **platform tags**. Among them, PEP 600 is supposed to be **future-proof**.  
+* PEP 600: a wheel tagged `manylinux_x_y` shall work on any distro based on `glibc==x.y`.
+* Such `manylinux_x_y` tagged wheels should work with `pip>=20.3` and `CPython>=3.8.10`, `CPython>=3.9.5` and `CPython>=3.10.0`.  
+
+:arrow_right: To generate `manylinux_x_y` compatible wheels, **Docker images** are available with different toolchains and architectures.
+
+
+---
+
+# `manylinux` - Build and upload to `PyPi`
+
+## .hcenter[`C++` + `Armadillo` + `swig` + `setuptools` = Python module]
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+:arrow_right: The files are in **`examples/armanpy_pip`**.  
+:arrow_right: We are using the `AlmaLinux 8` based Docker image `quay.io/pypa/manylinux_2_28_x86_64`.  
+:arrow_right: For testing, the package is uploaded to `test.pypi.org` instead of `pypi.org`.  
+:arrow_right: Create an account on [https://test.pypi.org/account/register](https://test.pypi.org/account/register) to upload.  
+
+## Generating and uploading the package
+
+```bash
+$ docker run -it --volume $(pwd):/root/ quay.io/pypa/manylinux_2_28_x86_64
+[docker] cd root/
+[docker] yum -y install epel-release
+[docker] yum -y update
+[docker] yum -y install swig armadillo-devel boost-devel
+[docker] /opt/python/cp310-cp310/bin/pip3.10 install wheel setuptools numpy twine
+[docker] /opt/python/cp310-cp310/bin/pip3.10 wheel . --no-deps -w output
+[docker] auditwheel repair output/armanpypsa-*-linux_x86_64.whl -w output
+[docker] twine upload output/armanpypsa-*-manylinux_2_28_x86_64.whl -r testpypi
+```
+
+## Installing the package from `test.pypi.org`
+
+```bash
+$ python3 -m venv venv
+$ source venv/bin/activate
+$ pip3 install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ armanpypsa
+$ test_package/test.py
+```
+
+:arrow_right: The dependencies (`numpy`) are installed from `pypi.org`.   
+
+---
+
+class: top
+
+# `manylinux` - Some explanations
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30[
+.tree[
+armanpy_pip/
+* armanpy/
+    * [...]
+* armanpypsa.i
+* go.sh
+* LICENSE
+* MANIFEST.in
+* **pyproject.toml** :arrow_left:
+* README.md
+* setup.py
+* src/
+    * myclass.cpp
+    * myclass.h
+* test_package/
+    * test.py
+]
+]
+.column.w70.middle[
+## .hcenter[`pyproject.toml`]
+```toml
+[build-system]
+requires = ["setuptools>=59.6.0", "wheel", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "armanpypsa"
+version = "0.0.11"
+authors = [
+  { name="Dubray N.", email="noel.dubray@gmail.com" },
+]
+description = "Test package for teaching purposes"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = ["numpy"]
+
+[project.urls]
+"Homepage" = "https://github.com/dubrayn/dubrayn.github.io"
+"Bug Tracker" = "https://github.com/dubrayn/dubrayn.github.io/issues"
+```
+
+:arrow_right: Notice the different dependencies:
+* `build-system/requires` (build)
+* `project/dependencies` (runtime)
+
+:warning: `project/version` must not exist in the remote package index.  
+]
+]
+
+---
+
+class: top
+
+# `manylinux` - Some explanations
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30[
+.tree[
+armanpy_pip/
+* armanpy/
+    * [...]
+* armanpypsa.i
+* go.sh
+* LICENSE
+* **MANIFEST.in** :arrow_left:
+* pyproject.toml
+* README.md
+* setup.py
+* src/
+    * myclass.cpp
+    * myclass.h
+* test_package/
+    * test.py
+]
+]
+.column.w70.middle[
+## .hcenter[`MANIFEST.in`]
+```manifest
+include LICENSE
+include README.md
+recursive-include src *.cpp
+recursive-include src *.h
+recursive-include armanpy *.hpp
+recursive-include armanpy *.i
+```
+:arrow_right: List the files to be included in the `venv` for the build process.  
+:arrow_right: Wildcards are accepted.  
+]
+]
+
+---
+
+class: top
+
+# `manylinux` - Some explanations
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30[
+.tree[
+armanpy_pip/
+* armanpy/
+    * [...]
+* armanpypsa.i
+* go.sh
+* LICENSE
+* MANIFEST.in
+* pyproject.toml
+* README.md
+* requirements.txt
+* **setup.py** :arrow_left:
+* src/
+    * myclass.cpp
+    * myclass.h
+* test_package/
+    * test.py
+]
+]
+.column.w70.middle[
+## .hcenter[`setup.py`]
+```python
+from setuptools import setup, Extension
+
+# fix an annoying bug with setuptools
+# https://stackoverflow.com/questions/29477298/setup-py-run-build-ext-before-anything-else/48942866#48942866
+
+from setuptools.command.build_py import build_py as _build_py
+
+class build_py(_build_py):
+    def run(self):
+        self.run_command("build_ext")
+        return super().run()
+
+module1 = Extension('_armanpypsa',
+                    include_dirs = ['./armanpy/', 'src/', '/opt/python/cp310-cp310/lib/python3.10/site-packages/numpy/core/include/'],
+                    libraries = ['m', 'z', 'armadillo'],
+                    sources = ['armanpypsa.i', 'src/myclass.cpp'],
+                    swig_opts = ["-c++", "-Wall", "-I.", "-I./armanpy/", "-Isrc/"])
+
+setup (name = 'armanpypsa',
+       py_modules = ['armanpypsa'],
+       version = '1.0',
+       description = 'This is a test package',
+       options = {"build_ext": {"inplace": False}},
+       cmdclass = {'build_py' : build_py}, # fix for the bug
+       ext_modules = [module1])
+```
+]
+]
+
+:arrow_right: Some tweaks to get it to work:  
+* workaround for a bug in `setuptools` (order of `build` and `build_ext`),
+* hardcoded include path for `numpy` (not sure how to do it better, feel free to PR).
+
+---
+
+class: top
+
+# `manylinux` - Some explanations
+
+.vspace[]
+
+.vspace[]
+
+.vspace[]
+
+.row.w100[
+.column.w30[
+.tree[
+armanpy_pip/
+* armanpy/
+    * [...]
+* armanpypsa.i
+* **go.sh** :arrow_left:
+* LICENSE
+* MANIFEST.in
+* pyproject.toml
+* README.md
+* requirements.txt
+* setup.py
+* src/
+    * myclass.cpp
+    * myclass.h
+* test_package/
+    * test.py
+]
+]
+.column.w70.middle[
+## .hcenter[`go.sh` (launched in the container)]
+```bash
+#!/bin/bash
+
+yum -y install epel-release
+yum -y update
+yum -y install swig armadillo-devel boost-devel
+/opt/python/cp310-cp310/bin/pip3.10 install wheel setuptools numpy twine
+/opt/python/cp310-cp310/bin/pip3.10 wheel . --no-deps -w output
+auditwheel repair output/armanpypsa-*-linux_x86_64.whl -w output
+/opt/python/cp310-cp310/bin/twine upload output/armanpypsa-*-manylinux_2_28_x86_64.whl -r testpypi
+```
+:arrow_right: `armadillo-devel` and its deps. are installed from the `epel` repo,  
+:arrow_right: The chosen Python version is `3.10`.  
+:arrow_right: The build dependencies are manually installed.  
+:arrow_right: `auditwheel` creates the final `manylinux_x_y` wheel.  
+:arrow_right: `twine` is used to upload the wheel directly from the container.  
+]
+]
+
+---
+
+# `manylinux` - Screencast
+
+.hcenter[
+<asciinema-player src="scripts/manylinux.cast"></asciinema-player>
+]
+
+.hcenter[
+:warning: This is a **long** screencast (>7 min), even if the Docker image was already present.
+]
+
+---
+
+# Conclusions
+
+## Virtual environments are powerful
+
+:arrow_right: They allow to develop different Python projects on the same computer.  
+:arrow_right: They allow to decouple and isolate the different Python installs and their associated packages.  
+
+## Virtual environments are easy to use and to manage
+
+:arrow_right: Two standard modules to remember: `venv` and `pip`  
+:arrow_right: Several intuitive commands to remember  
+:arrow_right: `python -m venv --help`  
+:arrow_right: `python -m pip --help`  
+
+## Virtual environments are used by other tools
+
+:arrow_right: deployment testing with tox ([https://tox.wiki](https://tox.wiki))  
+:arrow_right: build process (`build`, `pip`...)  
+:arrow_right: CI / CD
+
+## `PyPi` is a blessing
+
+:arrow_right: Every Python package is one `pip` command away ! With its dependencies !  
+:arrow_right: Deploy almost everything almost everywhere (whatever your distro, environment, architecture...) !  
+:arrow_right: It is **relatively easy** to publish your packages, even complex ones.  
+
+.vspace[]
+
+## .hcenter[:arrow_right: One Python project ? One virtual environment for its dependencies.]
+
+    </textarea>
+
+    <script src="core/javascript/remark.js"></script>
+    <script src="core/javascript/katex.min.js"></script>
+    <script src="core/javascript/auto-render.min.js"></script>
+    <script src="core/javascript/emojify.js"></script>
+    <script src="core/javascript/mermaid.js"></script>
+    <script src="core/javascript/term.js"></script>
+    <script src="core/javascript/jquery-2.1.1.min.js"></script>
+    <script src="core/javascript/extend-jquery.js"></script>
+    <script src="core/javascript/cinescript.js"></script>
+    <script src="core/javascript/gitgraph.js"></script>
+    <script src="core/javascript/asciinema-player.js"></script>
+    <script>
+
+    // === Remark.js initialization ===
+    var slideshow = remark.create({
+      highlightStyle: 'monokai',
+      countIncrementalSlides: false,
+      highlightLines: true
+    });
+
+    // === Mermaid.js initialization ===
+    mermaid.initialize({
+      startOnLoad: false,
+      cloneCssStyles: false,
+      flowchart:{
+        height: 50
+      },
+      sequenceDiagram:{
+        width: 110,
+        height: 30
+      }
+    });
+
+    function initMermaid(s) {
+      var diagrams = document.querySelectorAll('.mermaid');
+      var i;
+      for(i=0;i<diagrams.length;i++){
+        if(diagrams[i].offsetWidth>0){
+          mermaid.init(undefined, diagrams[i]);
+        }
+      }
+    }
+
+    slideshow.on('afterShowSlide', initMermaid);
+    initMermaid(slideshow.getSlides()[slideshow.getCurrentSlideIndex()]);
+
+    
+    // === Emojify.js initialization ===
+    emojify.run();
+
+    // === Cinescript initialization ===
+    $(document).ready(init_cinescripts);
+
+    renderMathInElement(document.body,{delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}], ignoredTags: [] });
+
+    </script>
+  </body>
+</html>
+
