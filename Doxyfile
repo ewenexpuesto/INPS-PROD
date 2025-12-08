@@ -1,0 +1,22 @@
+# Doxygen configuration
+PROJECT_NAME           = "INPS-PROD"
+PROJECT_BRIEF          = "Harmonic oscillator basis helpers"
+OUTPUT_DIRECTORY       = docs/build
+CREATE_SUBDIRS         = NO
+OPTIMIZE_OUTPUT_FOR_C  = NO
+OPTIMIZE_OUTPUT_JAVA   = NO
+OPTIMIZE_OUTPUT_FOR_CLI= NO
+MARKDOWN_SUPPORT       = YES
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_XML           = NO
+QUIET                  = NO
+WARN_LOGFILE           =
+INPUT                  = Basis.h Poly.h Hermit.h OneDHOSolution.h docs/api-overview.md
+RECURSIVE              = NO
+FILE_PATTERNS          = *.h *.md
+EXCLUDE_PATTERNS       = armadillo-code-15.0.x/*
+INLINE_SOURCES         = NO
+SOURCE_BROWSER         = YES
+REFERENCES_LINK_SOURCE = YES
+USE_MDFILE_AS_MAINPAGE = docs/api-overview.md

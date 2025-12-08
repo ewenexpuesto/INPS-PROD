@@ -1,0 +1,202 @@
+################################################################################
+################################################################################
+#################################### IPS-DEV ###################################
+################################################################################
+################################################################################
+
+Project:
+* calculate and manipulate 1D-HO solutions (C++ / armadillo)
+* use git, doxygen, make, cxxtest, remark.js
+
+---- WEEK0 ----
+
+* introduction
+* project
+* git (start)
+
+=== TP0
+
+---- WEEK1 ----
+
+* zen of C++
+* git (end)
+
+=== TP1
+
+---- WEEK2 ----
+
+* make
+* Armadillo
+* quadratures (-> slide 13)
+
+=== TP2
+
+---- WEEK3 ----
+
+* quadratures (end)
+* Doxygen
+* CxxTest
+
+=== TP3
+
+---- WEEK4 ----
+
+* astyle
+* latex
+* markdown
+* Python
+
+=== TP4
+
+---- WEEK5 ----
+
+=== project presentations
+
+################################################################################
+################################################################################
+################################### IPS-PROD ###################################
+################################################################################
+################################################################################
+
+Project:
+* calculate and plot the local density of a nuclear system (C++ / armadillo)
+* use git, doxygen, make, cxxtest, matplotlib, remark.js, povray
+
+---- WEEK0 ----
+
+* debrif projet IPS-DEV
+* project
+* sum optimization
+
+=== TP0
+
+---- WEEK1 ----
+
+* POVray
+
+=== TP1
+
+---- WEEK2 ----
+
+* valgrind
+* gdb
+
+=== TP2
+
+---- WEEK3 ----
+
+* python (end)
+* numpy / python accelerators
+
+=== TP3
+
+---- WEEK4 ----
+
+* advanced git
+
+=== TP4
+
+---- WEEK5 ----
+
+Project presentation
+
+################################################################################
+################################################################################
+###################################### PSA #####################################
+################################################################################
+################################################################################
+
+Project:
+* write a 2D-FD solver for the time-dependent Shrodinger equation (Python / C++ / armadillo)
+* visualize the time-evolution of a wave packet (paraview / custom VTK)
+* implement an automatic restart mechanism
+* store the results in a mongoDB database
+* check some special cases (diffraction, tunneling effect, HO solutions, etc...)
+* use git, doxygen, make, cxxtest, swig, remark.js, VTK
+
+---- Session 0 ----
+
+* introduction
+* fdm
+* project
+* scheme derivations
+
+---- Session 1 ----
+
+* python bindings - manual
+* python bindings - swig (start)
+
+---- Session 2 ----
+
+* python bindings - swig (end)
+* mongoDB (start)
+
+---- Session 3 ----
+
+* mongoDB (end)
+* VTK (start)
+
+---- Session 4 ----
+
+* VTK (end)
+* paraview
+ * data.csv
+  * plot
+  * change curve properties
+ * cow.vtp
+  * generate normals
+  * plot with normal.y
+  * plot normal glyphs
+  * see all normals
+  * add axes
+  * change color map
+  * edit color map
+ * wind.vtk
+  * volume visualization
+  * isosurfaces
+  * streamlines
+
+---- Session 5 ----
+
+===> Mid-project presentation
+
+---- Session 6 ----
+
+* paraview
+ * foot.vtk
+  * volume
+  * isosurfaces
+  * clip
+ * brain.vtk
+  * volume
+  * change color
+  * slice
+ * pyevtk_anim_images.py / pyevtk_anim_grids.py
+  * warp by scalar
+  * plotSelectionOverTime
+  * save animation
+  * view animation
+* live monitoring
+
+---- Session 7 ----
+
+* multiprocessing (start)
+
+---- Session 8 ----
+
+* multiprocessing (end)
+* errors / exceptions (start)
+
+---- Session 9 ----
+
+* errors / exceptions (end)
+* mpi4py
+
+---- Session 10 ----
+
+* pip (TODO)
+
+---- Session 11 ----
+
+===> Final project presentation
+

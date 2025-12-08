@@ -1,75 +1,81 @@
 #include "Poly.h"
 
+#include <stdexcept>
 
 
+void Poly::calcHermite(int n, const arma::vec & zVals)
+{
+    if (n < 0)
+    {
+        throw std::invalid_argument("Hermite order must be non-negative");
+    }
 
-void Poly::calcHermit( int n , arma::rowvec zVals ) {
-
+    ordreMax = n;
     nombreValeur = zVals.n_elem;
-    hermit = arma::mat(n, nombreValeur, arma::fill::zeros);
+    arma::rowvec zRow = zVals.t();
 
-    hermit.row(0).fill(1);
-    if (ordreMax > 1) {
-        hermit.row(1) = 2 * zVals;
+    // Allocate the Hermite table and seed the constant row
+    hermiteTable = arma::mat(n + 1, nombreValeur, arma::fill::zeros);
+    hermiteTable.row(0).ones();
 
-        for (int ligne = 2 ; ligne < ordreMax + 1 ; ligne++ ){
-        hermit.row(ligne) = 2.0 * (zVals % hermit.row(ligne - 1)) - 2.0 * (ligne - 1) * hermit.row(ligne - 2);
-        }
+    if (n == 0)
+    {
+        return;
+    }
+
+    // Base recurrence row for n = 1
+    hermiteTable.row(1) = 2.0 * zRow;
+
+    // Fill higher orders via the standard Hermite recurrence H_n = 2 x H_{n-1} - 2(n-1) H_{n-2}
+    for (int ligne = 2; ligne <= n; ++ligne)
+    {
+        hermiteTable.row(ligne) = 2.0 * (zRow % hermiteTable.row(ligne - 1)) - 2.0 * (ligne - 1) * hermiteTable.row(ligne - 2);
     }
 }
 
 
-
-
-void Poly::calcLaguerre( int n , int m , arma::rowvec zVals ) {
-
-
-    // =================Partie complétion slice 0=========================
+void Poly::calcLaguerre(int mCount, int nCount, const arma::vec& zVals)
+{
     nombreValeur = zVals.n_elem;
-    laguerre = arma::cube(m , nombreValeur,n, arma::fill::zeros);
 
-    printf("test1");
-    arma::mat slice0 = arma::mat(m, nombreValeur, arma::fill::zeros); // voir si y'a pas moyen de remplir cette slice directement de 1
-    slice0.fill(1);
-    laguerre.slice(0)= slice0;
-    printf("test2");
-
-    // ===============================================================
-
-
- 
-    // =================Partie complétion slice 1=========================
-   //je fais un vect de 1+m 
-    //pui pour chaque je  fais un slice avec ce vecteur ajouter à chaqu, évite double boucle
-
-
-    arma::vec vecTemporaire(m);
-    for (int i =0 ; i<m ; i++)
+    if (mCount <= 0 || nCount <= 0)
     {
-
-           vecTemporaire(i) = 1 + i;
+        laguerreTable.reset();
+        return;
     }
 
-    arma::mat slice1 = arma::mat(m, nombreValeur);
-    for (int nu = 0 ; nu < nombreValeur ; nu++){
-        
-        arma::vec tempo(m);
-        tempo.fill(nu);
-        slice1.row(nu) = vecTemporaire + tempo;
+    // Allocate the cube: rows=m alphas, cols=n orders, slices=x samples
+    laguerreTable = arma::cube(mCount, nCount, nombreValeur, arma::fill::zeros);
+
+    for (int alpha = 0; alpha < mCount; ++alpha)
+    {
+        const double alpha_d = static_cast<double>(alpha);
+
+        for (arma::uword idx = 0; idx < nombreValeur; ++idx)
+        {
+            const double x = zVals(idx);
+
+            // L_0^alpha(x) = 1 for all x
+            laguerreTable(alpha, 0, idx) = 1.0;
+
+            if (nCount == 1)
+            {
+                continue;
+            }
+
+            // L_1^alpha(x) = 1 + alpha - x
+            laguerreTable(alpha, 1, idx) = 1.0 + alpha_d - x;
+
+            // Higher orders use the generalized Laguerre recurrence
+            for (int order = 2; order < nCount; ++order)
+            {
+                const double order_d = static_cast<double>(order);
+                const double coeffA = 2.0 * order_d - 1.0 + alpha_d - x;
+                const double coeffB = order_d - 1.0 + alpha_d;
+                laguerreTable(alpha, order, idx) = (coeffA * laguerreTable(alpha, order - 1, idx) - coeffB * laguerreTable(alpha, order - 2, idx)) / order_d;
+            }
+        }
     }
-    laguerre.slice(1) = slice1;   
-    // =========================== Partie complétion autres Slices ============================
-
-    for (int N = 2 ; N < n ; N++){
-        laguerre.slice(N) = Poly::calcSliceN(N , laguerre.slice(N-1) , laguerre.slice(N-1));
-    }
-
-
-
-    // ===============================================================
-
-    Poly::printMatrix(laguerre.slice(0));
-    Poly::printMatrix(laguerre.slice(1));
 }
 
 
@@ -92,5 +98,30 @@ void Poly::printMatrix( arma::mat mat ) {
 
 arma::mat Poly::calcSliceN(int n, arma::mat sliceNMoins1, arma::mat sliceNMoins2)
 {
-    return arma::mat();
+    arma::mat result(sliceNMoins1.n_rows, sliceNMoins1.n_cols, arma::fill::zeros);
+    
+    result = sliceNMoins1;
+
+    return result;
+}
+
+arma::vec Poly::getHermiteRow(int order) const
+{
+    if (hermiteTable.is_empty())
+    {
+        throw std::logic_error("Hermite table is empty; call calcHermite first");
+    }
+
+    return hermiteTable.row(order).t();
+}
+
+arma::vec Poly::hermite(int order) const
+{
+    return getHermiteRow(order);
+}
+
+arma::vec Poly::laguerre(int mOrder, int nOrder) const
+{
+    // Extract the tube (all x values) for the requested (m,n) pair
+    return laguerreTable.tube(mOrder, nOrder);
 }

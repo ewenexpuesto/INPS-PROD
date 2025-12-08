@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>IPS-DEV</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="core/fonts/mono.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/animate.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/cinescript.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/style_core.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/mermaid.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/gitgraph.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/style_ensiie.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/katex.css"> 
+  </head>
+  <body>
+    <textarea id="source" readonly>
+
+layout: true
+class: animated fadeIn middle numbers
+
+.footnote[
+`IPS-DEV` - N. Dubray - ENSIIE - 2024 - [:book:](../index.html)
+]
+
+---
+
+# `git` - Advanced techniques
+
+.row[
+.column.w80[
+
+## Branches, remotes and subprojects
+
+* `push --set-upstream` - [create] and link branch to remote branch.
+* `fast-forward` - Automatic transparent merging.
+* `submodule` - Share code between projects. 
+* `merge -s` - Merging priorities.
+
+## Debugging / cleaning
+
+* `bisect` - Go bug hunting !
+* `blame` / `annotate` / `log` - Who wrote that ? When ?
+* `cherry-pick` - Apply a commit from a different branch.
+* `grep` - Find a pattern in a project.
+* `stash` - "Pause" your work. 
+* `clean` - Clean your project.
+
+## Extract from project
+
+* `format-patch` / `apply` / `am` - Use patches.
+* `archive` / `fetch --depth` / `clone --depth` - Do not use full history.
+
+## Modify history :warning:
+
+* `commit --amend` - Change the last commit.
+* `push --force` - Replace remote's history.
+* `reset` / `revert` - Undo some changes.
+* `rebase` / `rebase -i` / `merge --squash` - Move and squash commits.
+]
+.column.w20.middle[
+![](images/git_logo.png)
+]
+]
+
+---
+
+# Upstream branches / local branches
+
+.hcenter.w70[
+![](images/branches.png)
+]
+.hcenter[ [source](https://devconnected.com/how-to-set-upstream-branch-on-git/) ]
+
+## How are they useful ?
+
+:arrow_right: Know if you are ahead of upstream branches.  
+:arrow_right: Merge with upstream branches even when being offline.  
+:arrow_right: Use `git push`, `git fetch` and/or `git pull` without arguments.  
+
+---
+
+# Remotes
+
+## Unofficial definition of a remote
+**A remote is a nickname for an upstream repository.**  
+:arrow_right: The special remote `origin` is automatically created when cloning.
+
+## List remotes
+* `git remote`: list defined remotes.
+* `git remote -v`: list defined remotes for fetching and pushing.
+* `git remote show REMOTE`: print detailed information on REMOTE.
+* See also `[remote "xxx"]` in `.git/config`.
+
+```text
+*$ git clone main local_dev
+Cloning into 'local_dev'...
+done.
+*$ cd local_dev/ && cat .git/config
+[core]
+        repositoryformatversion = 0
+        filemode = true
+        bare = false
+        logallrefupdates = true
+[remote "origin"]
+        url = /home/dubrayn/temp/git/main
+        fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+        remote = origin
+        merge = refs/heads/master
+*$ git remote
+origin
+*$ git remote -v
+origin  /home/dubrayn/temp/git/main (fetch)
+origin  /home/dubrayn/temp/git/main (push)
+```
+
+:arrow_right: `git remote add remote2 /some/path/toto.git`: add remote to project.
+
+---
+
+# Local branches
+
+## Unofficial definition of a branch
+
+**A branch is a name for a commit and its ancestors.**  
+:arrow_right: Branches are light objects, do not refrain from using them.  
+
+## Two types of local branches
+
+* **non-tracking branches**, seen by `git branch` (often miscalled "local branches"),
+* **remote tracking branches**, seen by `git branch -r`.
+
+## Remote tracking branches
+
+:arrow_right: A **remote tracking branch** is a **local branch** connected to a **remote branch**.
+* Format for a remote tracking branch: `remote/branch`.
+* Operations on remote tracking branches:
+ * `git fetch remote`: update.
+ * `git merge remote/branch`: merge from.
+ * `git checkout --track -b localbranch remote/branch`:  
+ create new remote tracking branch.
+ * `git branch -vv`: show branch remote tracking information (if any).
+
+---
+
+# Local branches - example
+
+```text
+*$ git branch
+ * master
+*$ git branch -r
+   origin/HEAD -> origin/master
+   origin/master
+   origin/newbranch
+*$ git fetch origin
+*$ git merge origin/newbranch
+Already up to date.
+*$ git checkout --track -b newbranch origin/newbranch
+Branch 'newbranch' set up to track remote branch 'newbranch' from 'origin'.
+Switched to a new branch 'newbranch'
+*$ git branch
+   master
+ * newbranch
+*$ git branch -v
+   master    07d7c5f first commit
+ * newbranch 07d7c5f first commit
+*$ git branch -vv
+   master    07d7c5f [origin/master] first commit
+ * newbranch 07d7c5f [origin/newbranch] first commit
+*$ git checkout -b otherbranch
+Switched to a new branch 'otherbranch'
+*$ git branch -vv
+   master      07d7c5f [origin/master] first commit
+   newbranch   07d7c5f [origin/newbranch] first commit
+ * otherbranch 07d7c5f first commit
+```
+
+:warning: The remote tracking branch linked to a local non-tracking branch is sometimes called the "upstream branch". 
+
+---
+
+# Remote tracking branches and upstream branches
+
+## Remove branches
+* `git branch -r -d somebranch`: remove a remote tracking branch.
+* `git push origin --delete somebranch`: remove an upstream branch.
+
+## Link / unlink branches
+* `git push --set-upstream origin HEAD`:
+ * create upstream branch (if needed),
+ * create remote tracking branch,
+ * link upstream branch and remote tracking branch,
+ * link remote tracking branch to current branch ("set upstream branch for current branch").
+* `git branch -u origin/master`: link existing remote tracking branch and current branch.
+* `git branch --unset-upstream`: unlink remote tracking branch and current branch.
+
+:arrow_right: It is also possible to edit `.git/config`.
+
+```text
+*$ cat .git/config
+[core]
+        repositoryformatversion = 0
+        filemode = true
+        bare = false
+        logallrefupdates = true
+[remote "origin"]
+        url = /home/dubrayn/temp/git/main
+        fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+        remote = origin
+        merge = refs/heads/master
+[branch "newbranch"]
+        remote = origin
+        merge = refs/heads/newbranch
+```
+
+---
+
+# `fast-forward` - Automatic transparent merging
+
+:arrow_right: If you merge branch `blue` into branch `green` that has not been modified since the creation of branch `blue`, `git` uses a `fast-forward` method: it **does not create a commit** for the merge operation.
+
+.row.hcenter.w80[
+.column.w30.middle[
+.hcenter[
+## fast-forward
+]
+]
+.column.w5.middle[## :arrow_left:]
+.column.w30.middle[
+.hcenter[
+## local
+]
+]
+.column.w5.middle[## :arrow_right:]
+.column.w30.middle[
+.hcenter[
+## no fast-forward
+]
+]
+]
+
+.row.hcenter.w80[
+.column.w30[
+<canvas id='gitFF0'></canvas>
+]
+.column.w5.middle[]
+.column.w30[
+<canvas id='gitFF1'></canvas>
+]
+.column.w5.middle[]
+.column.w30[
+<canvas id='gitFF2'></canvas>
+]
+]
+
+:warning: It can be hard to "revert" a merge with the automatic fast-forward (where did the merge happen ?).  
+:arrow_right: To disable fast-forward: `git merge --no-ff`, `git pull --no-ff`.  
+:arrow_right: To **globally** disable fast-forward:
+
+```text
+$ git config --global merge.commit no
+$ git config --global merge.ff no
+```
+
+---
+
+# `submodule` - Share code between projects
+
+.noflex[
+.rightf.shadow.w20[ ![](images/inception.jpg) ]
+
+## Possible reasons:
+
+* Avoid code duplication.
+* Develop two projects simultaneously.
+* Split a big project into smaller ones.
+
+:+: The origin of the subproject is kept: easy to push to, semi-easy to pull from.  
+:warning: `git clone` will not clone the subproject: hard for noobs.
+
+```text
+*$ git submodule add https://github.com/dubrayn/superlib lib/superlib
+Cloning into ‘lib/superlib’…
+remote: Counting objects: 17, done.
+remote: Compressing objects: 100% (16/16), done.
+remote: Total 17 (delta 0), reused 17 (delta 0)
+Unpacking objects: 100% (17/17), done.
+Checking connectivity... done.
+*$ git status
+On branch master
+Your branch is up-to-date with 'origin/master'.
+
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+
+    new file:   .gitmodules
+    new file:   lib/superlib
+*$ cat .gitmodules
+[submodule “lib/superlib”]
+      path = lib/superlib
+      url = https://github.com/dubrayn/superlib
+```
+
+:arrow_right: cloning with subprojects: `git clone --recursive`.  
+:arrow_right: updating subprojects: `git submodule update`.
+
+:arrow_right: see also [git subtree](https://www.atlassian.com/git/tutorials/git-subtree), [git-subrepo](https://github.com/ingydotnet/git-subrepo#readme)...
+]
+
+---
+
+# `merge -s` - Merging priorities
+
+:arrow_right: Sometimes, when a merge conflict occurs, the solution is to keep one version and discard the other.  
+:arrow_right: This can be done with `git merge -s ours`. This option tells `git merge` to keep the original file in case of a merge conflict.
+
+```text
+*$ git branch
+ * master
+*$ ls
+index.html  titi
+*$ cat titi
+plop3
+*$ git checkout -b newbranch
+Switched to a new branch 'newbranch'
+*$ echo "newcontent" > titi
+*$ git commit -a -m "modified titi"
+[newbranch 1e07ac9] modified titi
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+*$ git checkout master
+Switched to branch 'master'
+*$ git merge newbranch -s ours
+Merge made by the 'ours' strategy.
+*$ cat titi
+plop3
+```
+
+---
+
+# `bisect` - Go bug hunting !
+
+## Context
+
+* A bug has been found in `HEAD`.
+* This bug was not present in a commit from 6 months ago.  
+
+:arrow_right: How to **quickly** find **which commit** introduced the bug in the project ?
+
+## {binary-search, interval halving, dichotomy} method
+
+:arrow_right: Use `git bisect` to perform a binary search on the history of a project.  
+* `git bisect start`: start the bisection
+* `git bisect bad`: bad case (HEAD by default)
+* `git bisect good`: declare that this commit is OK
+* `git bisect skip`: declare that this commit is untestable
+* `git bisect reset`: stop the bisection
+
+:arrow_right: You can use `old` and `new` instead of `bad` and `good`, or custom terms:  
+
+```text
+$ git bisect start --term-new fast --term-old slow
+```
+
+---
+
+# `bisect` - Go bug hunting !
+
+```text
+*$ git bisect start
+*$ git bisect bad
+*$ git bisect good v3.1415
+Bisecting: 671 revisions left to test after this (roughly 10 steps)
+[e50fe06300edb7f0b1e8ad5a86a0d0db89cc0d92] Removed all fortran code.
+*$ # do some tests on this commit to check if it is good or bad
+*$ git bisect good
+Bisecting: 332 revisions left to test after this (roughly 9 steps)
+[1e07ac9292f0a1eefd075e7418f28a0766419d86] Removed all C++ code.
+*$ # do some tests on this commit to check if it is good or bad
+*$ git bisect bad
+Bisecting: 160 revisions left to test after this (roughly 8 steps)
+[55eb83725a6d18dea12b6077eadfceab7905dd49] Removed all Ruby code.
+...
+repeat until the final commit is the first occurence of bad
+...
+383bee0ea12f59344a3a3d0fe4e868640bc61458 is the first bad commit
+commit 383bee0ea12f59344a3a3d0fe4e868640bc61458
+Author: Sheldon Cooper <sheldon.cooper@caltech.edu>
+Date:   Sat Feb 15 02:19:22 2014 +0100
+
+    I'm soooo drunk !!!
+
+:105 105 07d7c5f061bdc367bffd23d1aaec68174e494e7c dba4fde39caf3c027b48749e5da7fa68 M  flux_capacitor.py
+```
+
+.hcenter.shadow.w30[
+![](images/sheldon.jpg)
+]
+
+---
+
+# `blame` / `annotate` / `log` - Who wrote that ? When ?
+
+## Context
+
+* You have found **an atrocity** at a given line of a given file in a project you are using.
+* You now need to find out **who** wrote this line, **when**, and **why**, to **blame** someone.
+
+## `git blame` !
+
+* `git blame`: show options.
+* `git blame FILE`: view content of file annotated with last author of each line.
+* `git blame -L start,stop FILE`: process only line range of FILE.
+* `git annotate`: uses a different output format than `git blame`. Used by old scripts.
+
+## When was a line added in a given file ?
+* `git log -Spattern FILE`: view commits who introduced this pattern in FILE.
+* `git log -Gregexp FILE`: use a regular expression instead.
+
+---
+
+# `blame` - Example
+
+:arrow_right: Taken from [this tutorial](https://www.atlassian.com/git/tutorials/inspecting-a-repository/git-blame).
+
+```text
+*$ git blame README.md
+82496ea3 (kevzettler 2018-02-28 13:37:02 -0800 1) # Git Blame example
+82496ea3 (kevzettler 2018-02-28 13:37:02 -0800 2)
+89feb84d (Albert So 2018-03-01 00:54:03 +0000 3) This repository is an example of a project with multiple contributors making commits.
+82496ea3 (kevzettler 2018-02-28 13:37:02 -0800 4)
+82496ea3 (kevzettler 2018-02-28 13:37:02 -0800 5) The repo use used elsewhere to demonstrate `git blame`
+82496ea3 (kevzettler 2018-02-28 13:37:02 -0800 6)
+89feb84d (Albert So 2018-03-01 00:54:03 +0000 7) Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod TEMPOR incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum
+89feb84d (Albert So 2018-03-01 00:54:03 +0000 8)
+eb06faed (Juni Mukherjee 2018-03-01 19:53:23 +0000 9) Annotates each line in the given file with information from the revision which last modified the line. Optionally, start annotating from the given revision.
+eb06faed (Juni Mukherjee 2018-03-01 19:53:23 +0000 10)
+548dabed (Juni Mukherjee 2018-03-01 19:55:15 +0000 11) Creating a line to support documentation needs for git blame.
+548dabed (Juni Mukherjee 2018-03-01 19:55:15 +0000 12)
+548dabed (Juni Mukherjee 2018-03-01 19:55:15 +0000 13) Also, it is important to have a few of these commits to clearly reflect the who, the what and the when. This will help Kev get good screenshots when he runs the git blame on this README.
+```
+
+---
+
+# `blame` - Apparel
+
+.hcenter.shadow.w50[
+ ![](images/shirt.jpg)
+]
+.hcenter[
+[link to the shop](https://www.redbubble.com/people/spacelake/works/24756596-git-blame-ruining-friendships-since-2005?p=t-shirt)
+]
+
+.hcenter[
+:arrow_right: A study has shown that in 99.2% of the cases, the person to blame is **YOU**.
+]
+
+---
+
+# `cherry-pick` - Apply a commit from a different branch
+
+.hcenter.shadow.w30[
+![](images/cherry.jpg)
+]
+
+## Context
+
+* A bug has been found and fixed in a specific commit in branch `coffeeMachineHack`.
+* You want to incorporate the fix in `master`, but You do not want to merge the whole branch.
+
+## `git cherry-pick`
+
+:arrow_right: The commit belongs to another branch.
+
+* `git cherry-pick d42c389e`: applies commit `d42c389e` to the current `HEAD`.
+
+## `git cherry`
+
+:arrow_right: Has my commit been cherry-picked ?  
+
+* `git cherry`: allows to view if commits have been cherry-picked (see `man git-cherry`).
+
+---
+
+# `grep` - Find a pattern in a project
+
+:arrow_right: Find occurences of patterns in project files.
+
+
+## Useful options
+
+* `git grep some_pattern`: standard pattern search.
+* `git grep --color -n -P some_pattern`: use line numbers, colored output and regexp.
+* `--no-index`: search in untracked files too.
+* `-i`: ignore case.
+* `-I`: do not match binary files.
+* `-w`: word only.
+* `-v`: invert match.
+
+```text
+*$ git grep png
+IPS-DEV/armadillo.html:.hcenter.w30[![](images/armadillo_logo.png)]
+IPS-DEV/armadillo.html:.rightf.animated.fadeInRight.wait1s.shadow.w25[![](images/conrad_sanderson.png)]
+IPS-DEV/astyle.html:.hcenter.w90[![](images/xkcd_code_quality.png)]
+IPS-DEV/cxxtest.html:.hcenter.shadow.w50[![](images/unit_tests_excuses.png)]
+IPS-DEV/cxxtest.html:.shadow[![](images/unit_tests_cartoon.png)]
+IPS-DEV/cxxtest.html:.shadow[![](images/dog.png)]
+IPS-DEV/cxxtest.html:.shadow[![](images/xkcd_derivative.png)]
+IPS-DEV/doxygen.html:.hcenter.w30[![](images/doxygen_logo.png)]
+IPS-DEV/doxygen.html:.shadow.hcenter.w90[![](images/doxygen_example.png)]
+IPS-DEV/doxygen.html:.shadow.hcenter.w100[![](images/doxywizard.png)]
+IPS-DEV/git.html:.hcenter.w15[![](images/git_logo.png)]
+IPS-DEV/git.html:.hcenter.w90.shadow[![](images/gitk_00.png)]
+IPS-DEV/git.html:.hcenter.w90.shadow[![](images/gitg.png)]
+IPS-DEV/git.html:.hcenter.w50[![](images/git_logo.png)]
+Binary file IPS-DEV/images/xkcd_code_quality.png matches
+IPS-DEV/intro.html:.hcenter.w20[![](images/github-octocat.png)]
+IPS-DEV/intro.html:.hcenter.shadow.w50[![](images/density.png)]
+IPS-DEV/intro.html: ![](images/wikipedia_logo.png)
+IPS-DEV/intro.html:.shadow[![](images/code.png)]
+...
+```
+
+---
+
+
+
+
+
+
+
+
+
+
+
+# `stash` - "Pause" your work
+
+## Context
+
+* You are working on a feature.
+* Your boss asks You to fix an urgent bug.
+* You do not want to commit your WIP now.
+* You do not want to loose your WIP.
+
+## `git stash` to the rescue !
+
+:arrow_right: `git stash` saves your uncommitted changes (staged and unstaged).
+
+* `git stash`: save (stash) your work.
+* `git stash pop`: restore (un-stash) your stashed work.
+* `git stash -u`: stash also un-tracked files.
+* `git stash -a`: stash also ignored files.
+* `git stash list`: list stashed works.
+* `git stash save "message"`: stash with a message.
+* `git stash pop stash@{1}`: restore a specific stashed work.
+* `git stash show -p`: view stash diff with HEAD.
+* `git stash -p`: perform a partial stash (interactive).
+* `git stash branch newbranch stash@{2}`: create branch from stashed work.
+* `git stash drop stash@{1}`: remove stashed work.
+
+---
+
+# `clean` - Clean your project
+
+
+## Context
+
+* You started working on a new idea.
+* This idea turns out to be a bad idea.
+* You want your project to come back to a "clean state".
+
+:arrow_right: `git clean` recursively remove files that are not under version control, starting from current directory.  
+* `clean -x`: remove ignored files.
+* `clean -d`: remove untracked directories.
+* `clean -n`: show what would be removed, but do not remove anything.
+* `clean -i`: interactive use, ask for directions.
+* `clean -f`: **force flag**, needed to remove untracked files / directories.
+
+```text
+*$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+        titi
+        toto/
+
+nothing added to commit but untracked files present (use "git add" to track)
+*$ git clean -x -d
+fatal: clean.requireForce defaults to true and neither -i, -n, nor -f given; refusing to clean
+*$ git clean -x -d -i
+Would remove the following items:
+  titi   toto/
+ *** Commands ***
+  1: clean  2: filter by pattern  3: select by numbers  4: ask each  5: quit  6: help
+What now> 1
+Removing titi
+Removing toto/
+```
+
+---
+
+# `format-patch` + `apply` / `am` - Use patches
+
+## Context
+
+* You have developed a feature during your holidays for one of your work projects.
+* The repository for the project is on a private network.
+* You have to send your feature to a coworker.
+* You do not want to copy the whole repository (too big).
+* You do not want to copy a snapshot of your feature (still too big).
+* You do not want to loose commit informations related to your work.
+
+## Use a patch
+
+* `git format-patch master --stdout > my_super_patch.patch`: create a patch for the current branch (forked from master). 
+* `git apply --stat  my_super_patch.patch`: check the patch.
+* `git apply --check my_super_patch.patch`: test the patch.
+* `git am --signoff < my_super_patch.patch`: apply the patch (with signoff).
+* `git apply my_super_patch.patch`: apply the patch (no signoff).
+
+---
+
+# `--depth` / `archive` - Do not use full history
+
+## Context
+
+* You only want the few last commits of a project, to fix a bug for example.
+* You do not need the full history.
+
+## `--depth` can help You
+
+* `git fetch --depth 3` / `git clone --depth 3`: get last 3 commits only.
+
+:warning: The obtained project cannot be fetched, cloned or pushed to.
+
+## `git archive` can get only a specific commit
+
+* `git archive master | gzip > latest.tgz`: get a snapshot (no history, no `.git`).
+* `git archive master | bzip2 > latest.tar.bz2`: the same with a different compression.
+
+---
+
+# :warning: WARNING :warning:
+
+The following commands can **modify the history** of a project.  
+:warning: Use them only for local projects. If your project has been cloned somewhere, do not use them.
+
+---
+
+# `commit --amend` - Change the last commit
+
+## Possible reasons:
+
+* You have made a mistake in the last commit message.
+* You have forgotten a file in the last commit.
+
+:warning: **Your commit must be private**.
+
+:arrow_right: `git commit --amend`: change the last commit message and content (opens editor).  
+:arrow_right: `git commit --amend -m "new message"`: same without opening the editor.  
+:arrow_right: `git commit --amend --no-edit`: change the last commit content, keep the commit message.
+
+---
+
+# `push --force` - Replace remote's history
+
+## Possible reasons:
+
+* The remote history is a mess.
+
+:warning: **If the remote is public, and local versions of it exist, You can loose some commits**.
+
+:arrow_right: `Github` proposes **protected branches**: no `git push --force` allowed on them.
+
+&nbsp;
+
+## Variant: `git push --force-with-lease`
+
+:arrow_right: Check that remote and local are in sync before pushing with `--force`.  
+:warning: if someone did a `git fetch` without `git merge`, a branch can be overwritten (cf. [this example](https://blog.developer.atlassian.com/force-with-lease/)).
+
+---
+
+# `reset` - Undo some changes
+
+## Possible reasons
+
+* Your local project history is a mess,
+* You want to "unstage" some files,
+* You want to give up an idea...
+
+## `git reset` resets `HEAD`
+
+* `git reset --soft`: reset `HEAD`.
+* `git reset --mixed`: reset `HEAD` and the staging index.
+* `git reset --hard`: reset `HEAD`, the staging index and the working directory.
+* `git reset` = `git reset --mixed HEAD`: default behavior.
+
+---
+
+# `revert` - Undo some commits
+
+## Possible reasons
+
+* You want to fix a bug introduced by a single commit.
+* You do not want to remove the commit (and change the history).
+
+## Use `git revert`
+
+* `git revert COMMIT`: create a commit to "cancel" another one.
+* `-n` or `--no-commit`: modify, stage but does not commit.
+
+:arrow_right: far better than `git reset`, since it does not modify the history of the project.
+
+:arrow_right: See this nice [example](https://www.atlassian.com/git/tutorials/undoing-changes/git-revert).
+
+---
+
+# `rebase` - Move branches around
+
+.row[
+.column.w40.middle[
+:arrow_right: "Attach" a branch to **another commit**.  
+
+## Possible reasons:
+* You want to obtain a nice linear history (easier use of `git bisect`).
+* You are not afraid of using `rebase`.
+
+* `git rebase master`: change parent of branch to another commit.
+
+:arrow_right: obtain a nice linear history
+]
+.column.w25.middle[
+<canvas id='gitRebase0'></canvas>
+]
+.column.w5.middle[
+:arrow_right:
+]
+.column.w25.middle[
+<canvas id='gitRebase1'></canvas>
+]
+]
+
+---
+
+# `rebase -i` - Modify existing commits
+
+## Context
+
+* You contribute to a project by fork + pull request.  
+* Your pull request is denied with comment "squash your commits first".  
+
+## Use `git rebase -i` to squash your commits
+
+* `-i` lets the user edit a list of the commits and decide what to do for every one of them (split, group...).
+
+:arrow_right: See also `git merge --squash` to merge a full branch as a single commit.
+
+---
+
+# `git` possible workflow
+
+.hcenter.w80[
+![](images/workflow_git.png)
+]
+.hcenter[ [source](https://backlog.com/git-tutorial/branching-workflows/) ]
+
+---
+
+# `GitLab`'s `CI/CD`
+
+## Definitions
+
+:arrow_right: `CI`: Continuous Integration: **build** and **test** for each commit.  
+:arrow_right: `CD`: Continuous Delivery: **build** and **test** a **deployment-ready version** (manual deployment).  
+:arrow_right: `CD`: Continuous Deployment: **build**, **test** and **publish** a **deployment-ready version**.
+
+
+## `GitLab` ?
+
+:arrow_right: GitLab `CI/CD`: Some or all of the above.  
+
+At least a **runner** with the same **major.minor** version as the `GitLab` instance is needed.
+
+The **runner(s)** will **build**, **test* and/or **publish** the project.
+
+The actions to be done (and their dependencies) are described in the file `.gitlab-ci.yml`.  
+
+Some level of parallelism can be reached by using **stages**.
+
+---
+
+# `GitLab`'s `CI/CD`
+
+## .hcenter[[.gitlab-ci.yml]]
+
+.row[
+.column.w45[
+```yml
+stages:
+  - stage0
+  - stage1
+  - stage2
+  - stage3
+
+msgpack:
+  stage: stage0
+  script: "make -j$(nproc) msgpack"
+  artifacts:
+    paths:
+      - misc/deps/msgpack-c/
+
+googletest:
+  stage: stage0
+  script: "make -j$(nproc) gtest"
+  artifacts:
+    paths:
+      - misc/deps/googletest/
+
+compilation:
+  stage: stage1
+  script: "make -j$(nproc) -C src ../bin/hfb3"
+  artifacts:
+    paths:
+      - lib/libhfb3.a
+      - bin/hfb3
+  needs:
+    - job: msgpack
+      artifacts: true
+
+documentation:
+  stage: stage0
+  script: "make doc"
+```
+]
+.column.w45[
+```yml
+python:
+  stage: stage2
+  script: "make -j$(nproc) -C misc/python build"
+  needs:
+    - job: compilation
+      artifacts: true
+    - job: msgpack
+      artifacts: true
+
+compiltests:
+  stage: stage2
+  script: "make -j$(nproc) -Cmisc/tests target"
+  needs:
+    - job: compilation
+      artifacts: true
+    - job: googletest
+      artifacts: true
+  artifacts:
+    paths:
+      - bin/tests
+
+tests:
+  stage: stage3
+  script: "gtest-parallel -w$(nproc) bin/tests"
+  needs:
+    - job: compiltests
+      artifacts: true
+
+pytests:
+  stage: stage3
+  script: "cd misc/python; pytest"
+  needs:
+    - job: python
+      artifacts: true
+```
+]
+]
+
+---
+
+# `GitLab`'s `CI/CD`
+
+## .hcenter[On-going `CI/CD`.]
+
+&nbsp;
+
+.hcenter[![](images/gitlab_ci0.png)]
+
+---
+
+# `GitLab`'s `CI/CD`
+
+## .hcenter[On-going `CI/CD`.]
+
+&nbsp;
+
+.hcenter[![](images/gitlab_ci1.png)]
+
+---
+
+# `GitLab`'s `CI/CD`
+
+## .hcenter[Finished `CI/CD` (failed).]
+
+&nbsp;
+
+.hcenter[![](images/gitlab_ci2.png)]
+
+---
+
+# To conclude...
+
+## Links
+
+* [https://longair.net/blog/2009/04/16/git-fetch-and-merge/                                     ](https://longair.net/blog/2009/04/16/git-fetch-and-merge/)
+* [https://devconnected.com/how-to-set-upstream-branch-on-git/                                  ](https://devconnected.com/how-to-set-upstream-branch-on-git/)
+* [https://www.atlassian.com/git/tutorials/saving-changes/git-stash                             ](https://www.atlassian.com/git/tutorials/saving-changes/git-stash)
+* [https://backlog.com/git-tutorial/branching-workflows/                                        ](https://backlog.com/git-tutorial/branching-workflows/)
+* [https://coderefinery.github.io/git-branch-design/01-rebase/                                  ](https://coderefinery.github.io/git-branch-design/01-rebase/)
+* [https://www.atlassian.com/git/tutorials/inspecting-a-repository/git-blame                    ](https://www.atlassian.com/git/tutorials/inspecting-a-repository/git-blame)
+
+## See also:
+* [the benefits of a `pull request` workflow](https://www.madetech.com/blog/deployment-by-pull-requests)
+* a nice CLI frontend to `git`: [`tig`](https://github.com/jonas/tig)
+
+    </textarea>
+
+    <script src="core/javascript/remark.js"></script>
+    <script src="core/javascript/katex.min.js"></script>
+    <script src="core/javascript/auto-render.min.js"></script>
+    <script src="core/javascript/emojify.js"></script>
+    <script src="core/javascript/mermaid.js"></script>
+    <script src="core/javascript/term.js"></script>
+    <script src="core/javascript/jquery-2.1.1.min.js"></script>
+    <script src="core/javascript/extend-jquery.js"></script>
+    <script src="core/javascript/cinescript.js"></script>
+    <script src="core/javascript/gitgraph.js"></script>
+    <script>
+
+    // === Remark.js initialization ===
+    var slideshow = remark.create({
+      highlightStyle: 'monokai',
+      countIncrementalSlides: false,
+      highlightLines: true
+    });
+
+    // === Mermaid.js initialization ===
+    mermaid.initialize({
+      startOnLoad: false,
+      cloneCssStyles: false,
+      flowchart:{
+        height: 50
+      },
+      sequenceDiagram:{
+        width: 110,
+        height: 30
+      }
+    });
+
+    function initMermaid(s) {
+      var diagrams = document.querySelectorAll('.mermaid');
+      var i;
+      for(i=0;i<diagrams.length;i++){
+        if(diagrams[i].offsetWidth>0){
+          mermaid.init(undefined, diagrams[i]);
+        }
+      }
+    }
+
+    slideshow.on('afterShowSlide', initMermaid);
+    initMermaid(slideshow.getSlides()[slideshow.getCurrentSlideIndex()]);
+
+    
+    // === Emojify.js initialization ===
+    emojify.run();
+
+    // === Cinescript initialization ===
+    $(document).ready(init_cinescripts);
+
+    renderMathInElement(document.body,{delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}], ignoredTags: [] });
+
+    </script>
+    <script src="gitgraph2.js" type="text/javascript"></script>
+  </body>
+</html>
+

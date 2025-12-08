@@ -26,8 +26,8 @@ arma::rowvec OneDHOSolution::OneDHOSolutionCalc(int n , arma::rowvec vecteurAbsc
     arma::rowvec coefs = facteurConstant * vecteurCoefExp;
         
 
-    Hermit hermit(n , vecteurAbscises);
-    arma::rowvec hermiteVals = hermit.GetHermit();
+    Hermit hermite(n , vecteurAbscises);
+    arma::rowvec hermiteVals = hermite.GetHermit();
     arma::rowvec vecResults = coefs % hermiteVals;; 
     return vecResults;
 

@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "armadillo": "cpp",
-        "chrono": "cpp",
-        "functional": "cpp"
-    }
-}

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PSA Project</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="core/fonts/mono.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/animate.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/cinescript.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/style_core.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/mermaid.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/gitgraph.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/style_ensiie.css"> 
+    <link rel="stylesheet" type="text/css" href="core/css/katex.css"> 
+  </head>
+  <body>
+    <textarea id="source" readonly>
+class: titlepage numbers
+
+.title[Advanced Scientific Programming - Project :notebook:]
+
+.subtitle[`PSA` - N. Dubray - ENSIIE - 2025]
+
+.wauto[
+```C++
+#include <Python.h>
+#include "solver.h"
+
+static PyObject * calc_system(PyObject *self, PyObject *args)
+{
+  const char *string;
+  int val;
+
+  if (!PyArg_ParseTuple(args, "s", &string)) return NULL;
+
+  Solver s(string);
+  val = s.getVal();
+
+  return Py_BuildValue("i", val);
+}
+```
+]
+
+.footnote[
+`PSA` - N. Dubray - ENSIIE - 2025 - [:book:](../index.html)
+]
+
+---
+
+layout: true
+class: animated fadeIn middle numbers
+
+.footnote[
+`PSA` - N. Dubray - ENSIIE - 2025 - [:book:](../index.html)
+]
+
+---
+
+# Courses / project
+
+## Schedule
+.hcenter[
+| Time                | 03/18 2pm     | 03/19 9am     | 03/25 2pm     | 03/26 9am     | 04/01 2pm     | 04/02 9am       |
+|:-------------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:---------------:|
+| t                   | **Course #0** | **Course #1** | **Course #2** | **Course #3** | **Course #4** | .redb[Pres. #0] |
+| t + 2h              | Project       | Project       | Project       | Project       | Project       | .redb[Pres. #0] |
+
+| Time                | 04/08 2pm     | 04/09 2pm     | 04/29 2pm     | 04/30 9am     | 05/06 2pm     | 05/07 9am       |
+|:-------------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:---------------:|
+| t                   | **Course #5** | **Course #6** | **Course #7** | **Course #8** | **Course #9** | .redb[Pres. #1] |
+| t + 2h              | Project       | Project       | Project       | Project       | Project       | .redb[Pres. #1] |
+]
+.vspace[]
+
+.noflex[
+.rightf.w20[
+.hcenter[![](images/slides.png)]
+.hcenter[[source: xkcd](https://xkcd.com/365)]
+]
+
+## Presentations
+* slides [~20min] + discussion / questions [~10min]
+* .redb[presentation #0: weight 1.0] (mid-project)
+* .redb[presentation #1: weight 2.0] (final)
+
+.vspace[]
+
+## Teamwork
+* 3 students per team
+* **mandatory** `git` use
+]
+
+---
+
+# Project rules
+
+.column.middle.grow[
+## Rules:
+* an "`AUTHORS`" file **must** be present and contain your name(s)
+* the source **must** be written in `C++11` and `Python3`
+* the source **must** be documented with `Doxygen`
+* the compilation chain **must** use `GNU Make`
+* the presentation **must** be at the location "`pres/index.html`"
+* using branches is OK but **only master will be checked**
+* `Python3` bindings **are mandatory** and **must** be at the location "`bindings/`"
+* the presentation **must** use `remark.js`
+* unit tests **are mandatory** and **must pass**
+
+## :moneybag: Bonuses:
+* no warning at {compilation, bindings, tests, doc}
+* project is implementing other methods, or is going further than specified
+* source code is well written (comments, easy to read, etc...)
+* commits are small and explicit
+]
+
+---
+
+# Evaluation
+
+## What will be evaluated at the mid-project presentation (.redb[weight 1.0])
+* the presentation quality
+* the teamwork
+* the progress status of the project
+* possible content:
+ * solver presentation (math)
+ * numerical schemes
+ * physical cases
+ * project organization
+ * projected user experience
+ * first implementations
+ * first results
+ * what is left do be done
+
+## What will be evaluated at the final presentation (.redb[weight 2.0])
+* the presentation quality
+* the teamwork
+* the **final** status of the project
+* **the obtained results**
+* **the use of the development tools**
+* **the unit tests**
+
+---
+
+# Project description
+
+## Main objective
+:arrow_right: **write and use a 2D-FD solver for the time-dependent non-relativistic Schrödinger equation**
+
+## Details
+* **write the solver** in a mix of `Python3` and `C++11` using `Armadillo`
+* visualize the time-evolution of a wave packet with `Paraview`
+* get some **real-time monitoring information** of a run (in `Python3`)
+* implement an **automatic restart mechanism** (in `Python3`)
+* store the results in a **mongoDB database** (in `Python3`)
+* calculate some **physical applications** (diffraction, tunneling effect, HO solutions, etc...)
+* use `git`, `doxygen`, `make`, `cxxtest`, `swig`, `remark.js`, `Paraview`
+
+.hcenter.w40[
+<video controls="yes" loop="yes" preload="auto" width="100%" height="auto" data-setup="{}" loop>
+<source src="videos/propag_2D.webm" type="video/webm" />
+</video>
+]
+
+---
+
+# Project - formalism
+
+## Time-dependent non-relativistic Schrödinger equation
+Evolution equation:
+`$$i\hbar\frac{\partial}{\partial t}\psi(x,y,t) = \hat{\mathcal{H}}_{(x,y)}\psi(x,y,t)$$`
+with the 2D-Hamiltonian operator defined as
+`$$\hat{\mathcal{H}}_{(x,y)}\equiv \frac{\hat{p}_{(x)}^2}{2m} + \frac{\hat{p}_{(y)}^2}{2m} + \hat{V}(x,y),$$`
+and the momentum operators defined as
+`$$\forall u \in \{x,y\},\hspace{5mm}\hat{p}_{(u)}\equiv -i\hbar\frac{\partial}{\partial u}.$$`
+Constants:
+* `\(\hbar\)` is the **reduced Planck constant**
+`$$\hbar \equiv 6.582119514\times10^{−22}\,\textrm{MeV.s}$$`
+* `\(m\)` is the **neutron mass**
+`$$m\equiv 939.5654133\,\textrm{MeV/c}^2$$`
+* `\(i\)` is the **imaginary unit** (`\(i^2=-1\)`)
+
+---
+
+# Project - fields
+
+## Wave function `\(\psi(x,y,t)\)`
+* is a complex field
+* depends on time
+* must be initialized to
+`$$\psi_0(x,y) \equiv \psi(x,y,t=0),$$`
+* must stay **normalized**
+`$$\forall t, \iint \psi^*(x,y,t).\psi(x,y,t)\,dx\,dy = \iint \psi_0^*(x,y).\psi_0(x,y)\,dx\,dy = 1.$$`
+
+## Potential `\(\hat{V}(x,y)\)`
+* is a real field
+* does not depend on time
+
+---
+
+# Project - solver specifications
+
+## Numerical method
+* Finite Difference Method
+* **must implement FTCS, BTCS and CTCS schemes**
+* **scheme type specified at execution**
+
+## Discretized domain
+* regular mesh
+* **number of points specified at execution**
+* **physical span specified at execution**
+
+## Time domain
+* fixed time step
+* **time step specified at execution**
+
+## Boundary conditions
+* the wave function vanishes outside of the discretized domain
+
+## Fields
+* **initial wave function specified at execution**
+* **potential field specified at execution**
+
+---
+
+# Project - architecture
+
+.mermaid.shadow.w60.hcenter[
+    graph TD
+    A("Field generator") -- write --> D("MongoDB")
+    B("Solver") -- read / write --> D
+    C("Post-Processor") -- read --> D
+    C -- write --> E("VTK file(s)")
+    style D fill:#090 
+    style E fill:#B00 
+]
+
+.row[
+.column.w50[
+## Field generator (Python3)
+* can use an image file, a formula, etc...
+* input (CLI) : `JSON` file
+* output (DB) : initial wave function and potential
+
+## Solver (Python3 and C++)
+* must be able to be **stopped and restarted**
+* input (CLI) : run #id
+* output (DB) : wave functions
+
+## Post-processor (Python3)
+* export data to `Paraview`
+* input (CLI) : run #id
+* output : `VTK` file(s)
+]
+.column.w45[
+## Tips
+* it may be a good idea to store the `JSON` file in the DB.
+* the field generator and the post-processor may be the **same program**.
+* to identify a run, why not use a full or partial **MD5** ?
+]
+]
+
+---
+
+# Project - use cases
+
+In the following, different possible use cases are given.
+
+They illustrate how a typical user can interact with your project.
+
+You must design your project so that these use cases are easy to be realized by the average user.
+
+---
+
+# Project - use case #0
+
+## Tweaking the initial state / the potential
+
+The user wants to be sure that the initial state and the potential are fine before starting a calculation.
+
+A possible workflow **on a local computer** for this can be:
+
+1. generate initial state, mesh, potential with the **Field generator** from a `.json` file
+1. generate the corresponding `VTK` file with the **Post processor**
+1. visualize the `VTK` file with **Paraview**
+1. tweak the `.json` file
+1. goto 1 (this can last for hours)
+
+:arrow_right: The **Post processor** must be able to deal with the initial quantities, whithout the **Solver** being involved.
+
+---
+
+# Project - use case #1
+
+## Monitoring the calculation
+
+The user wants to check that an on-going calculation is well behaving.
+
+A possible workflow for this can be:
+
+1. launch the **Solver** on a supercomputer
+1. while the **Solver** is running, launch on a local computer the **Post processor** to generate the most recent `VTK` file
+1. visualize the `VTK` file with **Paraview** on a local computer
+1. stop the **Solver** if needed
+
+:arrow_right: The **Post processor** must be able to deal with intermediate results produced by an on-going calculation.
+
+---
+
+# Project - use case #2
+
+## Automatic restart mechanism
+
+An interrupted run of the **Solver** must be able to automatically continue from its last saved state.
+
+A possible workflow **on a supercomputer** for this can be:
+
+1. launch the **Solver** on a supercomputer
+1. the **Solver** saves intermediate results somewhere (database)
+1. the **Solver** is killed for an unknown reason (not by the user)
+1. the **Solver** is launched with **exactly the same inputs** as in 1
+1. the **Solver** finds out that the calculation has already been partially done, and continues from the most recent intermediate result
+
+:arrow_right: This must be done whithout any user intervention.
+
+:arrow_right: If a run has already been completed, the **Solver** must not calculate it again.
+
+---
+
+# Project - use case #3 (bonus)
+
+## Start a new calculation from an existing result
+
+The user wants to start a new calculation from a previous result (initial, intermediate or final) with different parameters (time scale, numerical scheme, mesh size...)
+
+A possible workflow for this can be:
+
+1. use the **Field generator** to generate the relevant initial quantities
+2. launch the **Solver** on a supercomputer
+
+:arrow_right: This is a **bonus** use case, try to implement this **only if the other use cases are fine**.
+
+:warning: Changing the mesh dimensions may involve interpolating values (**DO NOT DO THAT**).
+
+---
+
+# Project - Field generator
+
+## Possible initial wave functions
+
+* solutions of the 2D-HO
+* mix of the solutions of the 2D-HO
+* gaussian wave packet with initial speed
+
+`$$
+\psi_0(x,y) \equiv A.e^{-\left[\frac{(x - x_0)^2+(y - y_0)^2}{w^2}\right]}.e^{i\left[k_x.x+k_y.y\right]}
+$$`
+
+with
+
+* `\((x_0, y_0)\)` the initial position,
+* `\(w\)` the width of the gaussian,
+* `\((k_x, k_y)\)` the initial speed,
+* `\(A\)` a normalization constant.
+
+---
+
+# Project - physical applications
+
+## 2D-HO solutions
+* check the stationarity of some HO solutions
+* check the periodicity of combinations of HO solutions
+
+## Young's slits
+* check the interference pattern created by a wave packet through two slits in a potential wall
+
+## Quantum tunneling
+* check the partial crossing of a barrier higher in energy than the cinetic energy of a wave packet
+
+## Other cases
+* be creative...
+
+---
+
+# Project - 2D-HO solutions
+
+## Resulting 2D-HO Schrödinger equation
+`$$\hat{\mathcal{H}}_{(x,y)}^{\textrm{HO}}\psi(x,y) = E\psi(x,y)$$`
+with the 2D-HO Hamiltonian operator defined as
+`$$\hat{\mathcal{H}}_{(x,y)}^{\textrm{HO}}\equiv \frac{\hat{p}_{(x)}^2}{2m} + \frac{\hat{p}_{(y)}^2}{2m} + \frac{1}{2}m\omega^2(\hat{x}^2+\hat{y}^2),$$`
+and the momentum operators defined as
+`$$\forall u \in \{x,y\},\hspace{5mm}\hat{p}_{(u)}\equiv -i\hbar\frac{\partial}{\partial u}.$$`
+
+## Solutions
+**One can show** that solutions take the form
+`$$\forall n_x\ge 0,\, \forall n_y\ge 0,\, \psi_{n_x,n_y}(x,y)=\psi_{n_x}(x).\psi_{n_y}(y),$$`
+with
+`$$\forall u \in \{x,y\},\hspace{5mm}\psi_{n_u}(u) = \frac{1}{\sqrt{2^{n_u} n_u!}}\left(\frac{m\omega}{\pi\hbar}\right)^{1/4}e^{-\frac{m\omega u^2}{2\hbar}}H_{n_u}\left(\sqrt{\frac{m\omega}{\hbar}} . u\right).$$`
+The corresponding eigenvalues are given by
+`$$E_{n_x, n_y}=\hbar \omega \left(n_x+n_y + 1\right).$$`
+
+:arrow_right: Verify that a **fractional combination of 2D-HO solutions** has a **periodic time evolution**.
+
+---
+
+# Project - Young's slits
+
+## History
+* "double-slit" experiment by **Thomas Young** in 1801
+* demonstrated the validity of the **wave theory of light**
+* can also show the concept of **wave-particle duality** when performed with several particles
+
+.row.w90.hcenter[
+ .column.w48[
+.hcenter[![](images/double_slit.svg)]
+.hcenter[[source: wikipedia](https://en.wikipedia.org/wiki/Double-slit_experiment#/media/File:Double-slit.svg)]
+]
+.column.w48[
+.hcenter[![](images/slits.gif)]
+.hcenter[[source: wikipedia](https://upload.wikimedia.org/wikipedia/commons/e/e4/Slits.gif)]
+]
+]
+
+:arrow_right: The time evolution of a **gaussian** through the slits should create an **interference pattern**.
+
+
+---
+
+# Project - quantum tunneling
+
+.noflex[
+.rightf.w30[![](images/square_barrier.png).hcenter[[source: wikipedia](https://en.wikipedia.org/wiki/Rectangular_potential_barrier#/media/File:Square_potential.png)]]
+
+## Setup
+* a particle with **constant** energy `\(E \gt 0\)`
+* a rectangular potential barrier of height `\(V_0 \gt 0\)`
+
+## Classical mechanics
+* the outcome depends only on the barrier's height, **not its shape**
+* if `\(E \gt V_0\)`, the particule **always** crosses, **never** bounces
+* if `\(E \lt V_0\)`, the particule **never** crosses, **always** bounces
+
+## Quantum mechanics
+* the outcome **depends on the barrier's height and shape**
+* for whatever `\(E\)` and `\(V_0\)` values, the particule **may** cross, **may** bounce
+* even if `\(E \gt V_0\)`, the particule **may** bounce
+* even if `\(E \lt V_0\)`, the particule **may** cross :arrow_right: **quantum tunneling effect**
+]
+
+:arrow_right: The time evolution of a **gaussian** through a barrier should show **quantum tunneling**.
+
+---
+
+# Project - numerical values
+
+## Global
+* `\(\hbar = m = 1\)`,
+* `\(x_\textrm{min} = -10\)`, `\(x_\textrm{max} = 10\)`, `\(n_\textrm{x} = 101\)`, 
+* `\(y_\textrm{min} = -10\)`, `\(y_\textrm{max} = 10\)`, `\(n_\textrm{y} = 101\)`,
+* `\(t_\textrm{max} = 10\)`,
+* `\(dt = \frac{0.02}{800}\)` (FTCS),
+* `\(dt = \frac{0.02}{40}\)` (BTCS),
+* `\(dt = \frac{0.02}{4}\)` (CTCS),
+* `\(G(x_0, y_0, \omega, A, k_x, k_y)\)`
+
+## 2D-HO solutions
+* `\(V(x, y) = \frac{1}{9}\left(x^2+y^2\right)\)`,
+* `\(\psi(x, y) = G(0,0,2.06,\frac{1}{\sqrt{2}\pi}, 0,0)\)`
+
+## Young's slits
+* `\(\psi(x, y) = G(0,-5,2,\frac{1}{\sqrt{2}\pi}, 0,5)\)`
+
+## Quantum tunneling
+* `\(\psi(x, y) = G(0,-5,2,\frac{1}{\sqrt{2}\pi}, 0,2)\)`
+
+---
+
+# Project - results presentation
+
+:arrow_right: How to present a calculation result ?
+
+## Input
+* show the space and time discretization
+* show the numerical scheme
+* show the initial wave packet
+* show the potential field
+
+## Output
+* show the evolution with time of the total norm of the wave packet
+* show the evolution with time of the wave packet
+
+## To go further
+* show projections and/or slices of the wave packet if needed
+* show the (un)stability of the results with respect to the time step, the mesh size, etc...
+
+.w70.alert.hcenter[:warning: a plot without a label and a unit for each axis is **worthless** :warning:]
+
+---
+
+# Exercises
+
+## 1. Derivation of the **Explicit method** (FTCS scheme)
+## 2. Derivation of the **Implicit method** (BTCS scheme)
+## 3. Derivation of the **Crank-Nicolson method** (CTCS scheme)
+
+---
+
+# Exercise - 1. Derivation of the FTCS scheme
+
+## Explicit method (FTCS)
+
+* forward difference at time `\(t_n\)`
+* second-order central difference at position `\(x_i\)`
+
+## Evolution equation
+`$$i\hbar\frac{\partial}{\partial t}\psi(x,y,t) = \hat{\mathcal{H}}_{(x,y)}\psi(x,y,t)$$`
+with the 2D-Hamiltonian operator defined as
+`$$\hat{\mathcal{H}}_{(x,y)}\equiv \frac{\hat{p}_{(x)}^2}{2m} + \frac{\hat{p}_{(y)}^2}{2m} + \hat{V}(x,y),$$`
+and the momentum operators defined as
+`$$\forall u \in \{x,y\},\hspace{5mm}\hat{p}_{(u)}\equiv -i\hbar\frac{\partial}{\partial u}.$$`
+
+---
+
+# Exercise - 1. Derivation of the FTCS scheme
+
+## Solution (to be demonstrated)
+
+`$$
+\begin{aligned}
+\psi^{(t+dt)} = \psi + i.dt \Bigg[ & \left(-\frac{1}{\hbar}V(x,y) - \frac{\hbar}{m.dx^2}-\frac{\hbar}{m.dy^2}\right)\psi\\
+&+ \frac{\hbar}{2m.dx^2}\left(\psi_{x+dx}+\psi_{x-dx}\right)\\
+&+ \frac{\hbar}{2m.dy^2}\left(\psi_{y+dy}+\psi_{y-dy}\right)\Bigg]
+\end{aligned}
+$$`
+
+---
+
+# Exercise - 2. Derivation of the BTCS scheme
+
+## Implicit method (BTCS)
+
+* backward difference at time `\(t_{n+1}\)`
+* second-order central difference at position `\(x_i\)`
+
+## Evolution equation
+`$$i\hbar\frac{\partial}{\partial t}\psi(x,y,t) = \hat{\mathcal{H}}_{(x,y)}\psi(x,y,t)$$`
+with the 2D-Hamiltonian operator defined as
+`$$\hat{\mathcal{H}}_{(x,y)}\equiv \frac{\hat{p}_{(x)}^2}{2m} + \frac{\hat{p}_{(y)}^2}{2m} + \hat{V}(x,y),$$`
+and the momentum operators defined as
+`$$\forall u \in \{x,y\},\hspace{5mm}\hat{p}_{(u)}\equiv -i\hbar\frac{\partial}{\partial u}.$$`
+
+---
+
+# Exercise - 2. Derivation of the BTCS scheme
+
+## Solution (to be demonstrated)
+
+`$$
+\begin{aligned}
+\psi^{(t+dt)} = \psi + i.dt\Bigg[ & \left( -\frac{1}{\hbar}V(x,y) -\frac{\hbar}{m.dx^2} -\frac{\hbar}{m.dy^2}\right)\psi^{(t+dt)}\\
+&+ \frac{\hbar}{2m.dx^2}\left(\psi^{(t+dt)}_{x+dx}+\psi^{(t+dt)}_{x-dx}\right)\\
+&+ \frac{\hbar}{2m.dy^2}\left(\psi^{(t+dt)}_{y+dy}+\psi^{(t+dt)}_{y-dy}\right)\Bigg]
+\end{aligned}
+$$`
+
+---
+
+# Exercise - 3. Derivation of the CTCS scheme
+
+## Crank-Nicolson method (CTCS)
+
+* central difference at time `\(t_{n+\frac{1}{2}}\)`
+* second-order central difference at position `\(x_i\)`
+* can also be obtained as FTCS + BTCS :bulb:
+
+## Evolution equation
+`$$i\hbar\frac{\partial}{\partial t}\psi(x,y,t) = \hat{\mathcal{H}}_{(x,y)}\psi(x,y,t)$$`
+with the 2D-Hamiltonian operator defined as
+`$$\hat{\mathcal{H}}_{(x,y)}\equiv \frac{\hat{p}_{(x)}^2}{2m} + \frac{\hat{p}_{(y)}^2}{2m} + \hat{V}(x,y),$$`
+and the momentum operators defined as
+`$$\forall u \in \{x,y\},\hspace{5mm}\hat{p}_{(u)}\equiv -i\hbar\frac{\partial}{\partial u}.$$`
+
+---
+
+# Exercise - 3. Derivation of the CTCS scheme
+
+## Solution (to be demonstrated)
+
+`$$
+\begin{aligned}
+\psi^{(t+dt)} = \psi + i\frac{dt}{2}\Bigg[ & \left( -\frac{1}{\hbar}V(x,y) - \frac{\hbar}{m.dx^2} - \frac{\hbar}{m.dy^2}\right)\psi\\
+&+ \frac{\hbar}{2m.dx^2}\left(\psi_{x+dx}+\psi_{x-dx}\right)\\
+&+ \frac{\hbar}{2m.dy^2}\left(\psi_{y+dy}+\psi_{y-dy}\right)\\
+&+ \left( -\frac{1}{\hbar}V(x,y) - \frac{\hbar}{m.dx^2} -\frac{\hbar}{m.dy^2}\right)\psi^{(t+dt)}\\
+&+ \frac{\hbar}{2m.dx^2}\left(\psi^{(t+dt)}_{x+dx}+\psi^{(t+dt)}_{x-dx}\right)\\
+&+ \frac{\hbar}{2m.dy^2}\left(\psi^{(t+dt)}_{y+dy}+\psi^{(t+dt)}_{y-dy}\right)\Bigg]
+\end{aligned}
+$$`
+
+    </textarea>
+
+    <script src="core/javascript/remark.js"></script>
+    <script src="core/javascript/katex.min.js"></script>
+    <script src="core/javascript/auto-render.min.js"></script>
+    <script src="core/javascript/emojify.js"></script>
+    <script src="core/javascript/mermaid.js"></script>
+    <script src="core/javascript/term.js"></script>
+    <script src="core/javascript/jquery-2.1.1.min.js"></script>
+    <script src="core/javascript/extend-jquery.js"></script>
+    <script src="core/javascript/cinescript.js"></script>
+    <script src="core/javascript/gitgraph.js"></script>
+    <script>
+
+    // === Remark.js initialization ===
+    var slideshow = remark.create({
+      highlightStyle: 'monokai',
+      countIncrementalSlides: false,
+      highlightLines: true
+    });
+
+    // === Mermaid.js initialization ===
+    mermaid.initialize({
+      startOnLoad: false,
+      cloneCssStyles: false,
+      flowchart:{
+        height: 50
+      },
+      sequenceDiagram:{
+        width: 110,
+        height: 30
+      }
+    });
+
+    function initMermaid(s) {
+      var diagrams = document.querySelectorAll('.mermaid');
+      var i;
+      for(i=0;i<diagrams.length;i++){
+        if(diagrams[i].offsetWidth>0){
+          mermaid.init(undefined, diagrams[i]);
+        }
+      }
+    }
+
+    slideshow.on('afterShowSlide', initMermaid);
+    initMermaid(slideshow.getSlides()[slideshow.getCurrentSlideIndex()]);
+
+    
+    // === Emojify.js initialization ===
+    emojify.run();
+
+    // === Cinescript initialization ===
+    $(document).ready(init_cinescripts);
+
+    renderMathInElement(document.body,{delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}], ignoredTags: [] });
+
+    </script>
+  </body>
+</html>
+
