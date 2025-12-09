@@ -1,16 +1,21 @@
 CC := g++
-CXXFLAGS := -std=c++20 -O2 -DARMA_DONT_USE_WRAPPER -DARMA_DONT_USE_BLAS -DARMA_DONT_USE_LAPACK
+CXXFLAGS := -Wall -O3 -std=c++14 -Iarmadillo-code-15.0.x/armadillo-code-15.0.x/include \
+	-DARMA_DONT_USE_WRAPPER -DARMA_DONT_USE_BLAS -DARMA_DONT_USE_LAPACK
+LDFLAGS :=
 
 TARGET := main
-SOURCES := Main.cpp Basis.cpp Hermit.cpp Poly.cpp Rho.cpp
-INCLUDES := -Iarmadillo-code-15.0.x/armadillo-code-15.0.x/include
+SOURCES := Main.cpp Basis.cpp Hermit.cpp Poly.cpp Solver.cpp
+OBJECTS := $(SOURCES:.cpp=.o)
 
 .PHONY: all clean
 
 all: $(TARGET)
 
-$(TARGET): $(SOURCES)
-	$(CC) $(CXXFLAGS) $(SOURCES) $(INCLUDES) -o $(TARGET)
+$(TARGET): $(OBJECTS)
+	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
+
+%.o: %.cpp
+	$(CC) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(OBJECTS)
