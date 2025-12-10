@@ -44,7 +44,7 @@ Projet INPS | Ewen Expuesto, Wissal Jalfa, Mathys Vachon
 class: toc top
 # Table des matières
 
-1. Polynôme d'Hermite et fonction $\psi$
+1. Polynôme de Laguerre
 
 2. Vérification de l'énergie
 
@@ -56,7 +56,7 @@ class: toc top
 
 ---
 
-# Polynôme de Hermite - Théorie
+# Polynôme de Laguerre - Théorie
 
 ## Définition d'un point de vue physique
 
@@ -69,34 +69,108 @@ class: toc top
 `$$\forall n\geqslant 2,\, H_{n}(z) = 2zH_{n-1}(z)-2(n-1)H_{n-2}(z).$$`
 ---
 
-# Polynôme de Hermite - Théorie
+# Polynôme de Laguerre - Théorie
 ## Implémentation :
 
 ```c++
-#include "Hermit.h"
+class Poly
+{
+public:
+    int ordreMax;        
+    int nombreValeur;    
 
-Hermit::Hermit(int ordreN, const arma::rowvec& zValues_) {
-    ordreMax = ordreN;
-    zValues = zValues_;
-    nombreValeur = zValues_.n_elem;
-    matrixValues = arma::mat(ordreMax +1, nombreValeur, arma::fill::zeros);
-}
+    arma::mat hermit; 
+    arma::cube laguerre;
+    
+    void calcHermit(int n , arma::rowvec zVals);
+    void calcLaguerre(int n , int m , arma::rowvec zVals);
+    void static printMatrix(arma::mat mat);
 
-void Hermit::CalcMatrix() {
-    matrixValues.row(0).fill(1);
-    if (ordreMax > 1) {
-        matrixValues.row(1) = 2 * zValues;
-        for (int ligne = 2 ; ligne < ordreMax + 1 ; ligne++ ){
-        matrixValues.row(ligne) = 2.0 * (zValues % matrixValues.row(ligne - 1)) - 2.0 * (ligne - 1) * matrixValues.row(ligne - 2);
-        }
+private :
+    arma::mat matFact1;
+    arma::mat matFact2;
+
+    arma::mat calcSliceN(int n , arma::mat sliceNMoins1 , arma::mat sliceNMoins2 , arma::mat mat1 , arma::mat mat2); 
+
+};
+
+```
+---
+# Polynôme de Laguerre - Code
+## Implémentation :
+
+```c++
+void Poly::calcLaguerre( int n , int m , arma::rowvec zVals ) {
+
+
+    // =================Partie complétion slice 0=========================
+    nombreValeur = zVals.n_elem;
+    laguerre = arma::cube(m , nombreValeur,n, arma::fill::zeros);
+
+    arma::mat slice0 = arma::mat(m, nombreValeur, arma::fill::zeros);
+    slice0.fill(1);
+    laguerre.slice(0)= slice0;
+ 
+    // =================Partie complétion slice 1=========================
+ 
+    arma::vec vecTemporaire(m);
+    for (int i =0 ; i<m ; i++)
+    {
+           vecTemporaire(i) = 1 + i;
     }
+    
+    arma::mat slice1 = arma::mat(m, nombreValeur);
+    for (int nu = 0; nu < nombreValeur; nu++) {
+        arma::vec tempo(m);
+        tempo.fill(nu);
+        slice1.col(nu) = vecTemporaire + tempo;     }
+    laguerre.slice(1) = slice1;
+
+
+```
+---
+# Polynôme de Laguerre - Code
+## Implémentation :
+
+```c++
+
+    arma::mat mat1 = arma::mat(m, nombreValeur, arma::fill::ones);
+    arma::mat mat2 = arma::mat(m, nombreValeur);
+    mat2.fill(2);
+
+    matFact1 = arma::mat(m, nombreValeur);
+    matFact2 = arma::mat(m, nombreValeur);
+
+    arma::vec vecTemporaireColonne(m);
+    for (int i =0 ; i<m ; i++) vecTemporaireColonne(i) = i - 1;
+
+    for (int nu =0 ; nu<nombreValeur; nu++)
+    {
+        arma::vec nuVec(m);
+        nuVec.fill(nu);
+        matFact1.col(nu) = vecTemporaireColonne - nuVec;
+        matFact2.col(nu) = vecTemporaireColonne;
+    }
+
+    for (int N = 2 ; N < n ; N++) laguerre.slice(N) = Poly::calcSliceN(N , laguerre.slice(N-1) , laguerre.slice(N-1) , mat1 , mat2);
 }
-arma::rowvec Hermit::GetHermit() {
-    CalcMatrix();
-    return matrixValues.row(ordreMax);
+
+```
+---
+
+```c++
+arma::mat Poly::calcSliceN(int n, arma::mat sliceNMoins1, arma::mat sliceNMoins2 , arma::mat mat1 , arma::mat mat2)
+{
+
+    arma::mat sliceN = arma::mat(sliceNMoins1.n_rows, sliceNMoins1.n_cols , arma::fill::zeros);
+    sliceN = (mat2 + (matFact1/ n)) % sliceNMoins1 - (mat1 + (matFact2/ n) % sliceNMoins2);
+    return (sliceN);
 }
 ```
 ---
+
+
+
 
 # Fonction `$\psi$` - Théorie
 
@@ -127,9 +201,16 @@ public:
     static void PrintOneDHOSolution(const arma::vec vec);
 };
 ```
+---
+arma::mat Poly::calcSliceN(int n, arma::mat sliceNMoins1, arma::mat sliceNMoins2 , arma::mat mat1 , arma::mat mat2)
+{
+
+    arma::mat sliceN = arma::mat(sliceNMoins1.n_rows, sliceNMoins1.n_cols , arma::fill::zeros);
+    sliceN = (mat2 + (matFact1/ n)) % sliceNMoins1 - (mat1 + (matFact2/ n) % sliceNMoins2);
+    return (sliceN);
+}
 
 ---
-
 # Fonction `$\psi$` et polynôme d'Hermite - Pratique
 
 Voici le code de la méthode `OneDHOSolutionCalc` :
