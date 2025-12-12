@@ -98,313 +98,304 @@ arma::rowvec Hermit::GetHermit() {
 ```
 ---
 
-# Fonction `$\psi$` - Théorie
+# Calcul de la densité locale
 
-$$\psi_n(z) = \frac{1}{\sqrt{2^n n!}} \left(\frac{m\omega}{\pi\hbar}\right)^{1/4} e^{-\frac{m\omega z^2}{2\hbar}} H_n\left(\sqrt{\frac{m\omega}{\hbar}}z\right)$$
+## Rappel de la formule pour calculer la densité locale
+
+`$$\rho(\vec{r}) = \sum_{m_a}\sum_{n_a}\sum_{n_{za}}\sum_{m_b}\sum_{n_b}\sum_{n_{zb}} \rho_{m_a,n_a,n_{za},m_b,n_b,n_{zb}} \psi_{m_a,n_a,n_{za}}(\vec{r})\psi_{m_b,n_b,n_{zb}}^{*}(\vec{r})$$`
+
+ **Aucune dépendance** par rapport à `$\theta$`
+
+Sommes imbriquées ⇒ Recherche d'**optimisation** des calculs !
 
 ---
 
-# Fonction `$\psi$` et polynôme d'Hermite - Pratique
+# Calcul de la densité locale - Implémentation
 
 .alert.tree.hcenter[
-`projet`
-  * `OneDHOSolution.h`
-  * `OneDHOSolution.cpp`
+`INPS-PROD/`
+  * `inc/`
+    * `basis.h`
+    * `solver.h`
+  * `src/`
+    * `basis.cpp`
+    * `solver.cpp`
 ]
 
-`OneDHOSolution.h` :
+.center[Figure : Extrait de l'arborescence implémentant la classe **Solver** et ses tests unitaires]
+
+## solver.h - Un extrait
+
 ```c++
-class OneDHOSolution
-{
+class Solver {
 public:
-    double omega = 1.0;
-    double hbarre = 1.0;
-    double m = 1.0;
-
-    //Calcule le polynome d'Hermite d'ordre n, en z
-    arma::rowvec OneDHOSolutionCalc(int n , arma::rowvec vecteurAbscisses , int nbEchantillons);
-
-    static void PrintOneDHOSolution(const arma::vec vec);
+    Solver(Basis);
+    arma::mat version0(const arma::vec&, const arma::vec&);
+    arma::mat version1(const arma::vec&, const arma::vec&);
+    arma::mat version2(const arma::vec&, const arma::vec&);
+    arma::mat version3(const arma::vec&, const arma::vec&);
+    arma::mat version4(const arma::vec&, const arma::vec&);
+    arma::mat version5(const arma::vec&, const arma::vec&);
 };
 ```
 
 ---
-
-# Fonction `$\psi$` et polynôme d'Hermite - Pratique
-
-Voici le code de la méthode `OneDHOSolutionCalc` :
+#Calcul de la densité locale - Implémentation
+## solver.cpp - Version n°0
 
 ```c++
-arma::rowvec OneDHOSolution::OneDHOSolutionCalc(int n , arma::rowvec vecteurAbscises , int nbEchantillons)
-{
-    
-    //Calcul de la constante
-    double facteurConstant = 1.0 / sqrt(pow(2.0, n) * factorial(n)) * pow((m * omega) / (M_PI * hbarre), 0.25);    
-    
-    //Vecteurs des coefficients pour chaque z
-    arma::vec vec(nbEchantillons);
-    arma::rowvec vecteurCoefExp(nbEchantillons);
-    for (int i = 0; i < nbEchantillons; i++) vecteurCoefExp(i) = exp(-(omega * m * pow(vecteurAbscises(i), 2)) / (2.0 * hbarre));
-    arma::rowvec coefs = facteurConstant * vecteurCoefExp;
-        
-
-    Hermit hermit(n , vecteurAbscises);
-    arma::rowvec hermiteVals = hermit.GetHermit();
-    arma::rowvec vecResults = coefs % hermiteVals;; 
-    return vecResults;
-
+arma::mat Solver::version0(arma::Col<double> rVals, arma::Col<double> zVals) {
+  arma::mat result = arma::zeros(rVals.size(), zVals.size()); // number of points on r- and z- axes
+  // a and b are used to convert
+  uint a = 0;
+  uint b = 0;
+  // loop over all indexes
+  for (int m = 0; m < basis.mMax; m++)
+  {
+    for (int n = 0; n < basis.nMax(m); n++)
+    {
+      for (int n_z = 0; n_z < basis.n_zMax(m, n); n_z++)
+      {
+        for (int mp = 0; mp < basis.mMax; mp++)
+        {
+          for (int np = 0; np < basis.nMax(mp); np++)
+          {
+            for (int n_zp = 0; n_zp < basis.n_zMax(mp, np); n_zp++)
+            {
+              // calculate density for those indexes
+              arma::mat funcA = basis.basisFunc(m, n, n_z, zVals, rVals);
+              arma::mat funcB = basis.basisFunc(mp, np, n_zp, zVals, rVals);
+              result += funcA % funcB * rho(a, b); // mat += mat % mat * double
+              b++;
+            } // n_zp
+          } // np
+        } // mp
+        b=0;
+        a++;
+      } // n_z
+    } // n
+  } // m
+  return result;
 }
 ```
 
----
-
-# Fonction $\psi$ - Résultat
-
-![ups](images/Graphique.png)
----
-```python
-import pandas as pd
-import matplotlib.pyplot as plt
-
-df = pd.read_csv('Resultats.csv', header=None)
-
-# Première ligne: abscisses, les 10 autres : ordonnées
-x = df.iloc[0, :].values
-y_values = df.iloc[1:, :]
-
-# Tracer toutes les courbes
-plt.figure(figsize=(10,6))
-for i in range(y_values.shape[0]):
-    plt.plot(x, y_values.iloc[i, :], label=f'n = {i+1}')
-
-plt.xlabel('X')
-plt.ylabel('Y')
-plt.title('Phi')
-
-plt.legend()
-plt.grid(True)
-
-# Enregistrer la figures
-plt.savefig('Graphique.png', dpi=300, bbox_inches='tight')
-
-```
+.center[**Temps d'exécution : 2.152934s**]
 
 ---
 
-# Vérification de l'énergie - Théorie
-
-On connait déjà d'une part les solutions analytiques de l'équation de l'oscillateur harmonique quantique 1D. Or d'autre part les niveaux d'énergie sont connus 
-
-`$$\langle E_n(x)\rangle=E_n=\hbar \omega (n+\frac{1}{2})$$`
-
-Donc il s'agit ici de calculer `$E_n(x)$` avec les solutions exactes de `$\psi_n(x)$` déjà trouvées précédemment : 
-
-`$$\langle E_n(x) \rangle=\frac{\langle{\psi_n\vert\hat{H}\psi_n}\rangle}{\langle{\psi_n\vert\psi_n}\rangle}$$`
-
-Avec 
-
-`$$\langle{\psi_n\vert \hat{H_n} \psi_n}\rangle=\int_{-\infty}^{+\infty} \psi_n^*(x)\left(-\frac{\hbar^2}{2m}\frac{d^2\psi_n(x)}{dx^2}+\frac{1}{2}m\omega^2x^2\psi_n(x)\right)dx$$` 
-
-Et 
-
-`$$\langle{\psi_n\vert\psi_n}\rangle=\int_{-\infty}^{+\infty}\vert\psi_n(x)\vert^2dx$$`
-
-Ainsi dans un état propre, on a `$\hat{H}\psi_n(x)=E_n\psi(x)$`, ce qui donne `$\langle{E_n(x)}\rangle=E_n$` après calcul.
-
----
-
-# Vérification de l'énergie - Pratique
-
-.alert.tree.hcenter[
-`projet`
-  * `energy.h`
-  * `energy.cpp`
-]
-
-`energy.h` :
+#Calcul de la densité locale - Implémentation
+## solver.cpp - Version n°1
 ```c++
-double calculate_energy(double hbar, double omega, int n);
-arma::vec derivative(const arma::vec& x, const arma::vec& f);
-double gaussian_quadrature(const arma::vec& x_data, const arma::vec& f_data, double a, double b, const arma::vec& gauss_nodes, const arma::vec& gauss_weights);
+arma::mat Solver::version1(arma::Col<double> rVals, arma::Col<double> zVals) {
+  arma::mat result = arma::zeros(rVals.size(), zVals.size()); // number of points on r- and z- axes
+  // a and b are used to convert 
+  uint a = 0;
+  uint b = 0;
+  uint n_zMax_sum = 0;
+  // loop over all indexes
+  for (int m = 0; m < basis.mMax; m++)
+  {
+    for (int n = 0; n < basis.nMax(m); n++)
+    {
+      for (int n_z = 0; n_z < basis.n_zMax(m, n); n_z++)
+      {
+          b = n_zMax_sum;
+          for (int np = 0; np < basis.nMax(m); np++)
+          {
+            for (int n_zp = 0; n_zp < basis.n_zMax(m, np); n_zp++)
+            {
+              // calculate density for those indexes
+              arma::mat funcA = basis.basisFunc(m, n, n_z, zVals, rVals);
+              arma::mat funcB = basis.basisFunc(m, np, n_zp, zVals, rVals); // mp is replaced by m because rho is m-diagonal
+              result += funcA % funcB * rho(a, b); // mat += mat % mat * double
+              b++;
+            } // n_zp
+          } // np
+        a++;
+      } // n_z
+    } // n
+    n_zMax_sum += arma::sum(basis.n_zMax.row(m));
+  } // m
+  return result;
+}
+
 ```
 
-Remarques : 
-- Formule de dérivation : `f'(x_i+1) = (f(x_i+1) - f(x_i)) / (x_i+1 - x_i)`
-- `derivative` renvoie un tableau de même taille que l'entrée
-- Quadrature de Gauss implémentée sur un intervalle fini, mais possibilité d'adapter à $\mathbb{R}$ avec la fonction `tan`
-
-Résultats : 
-![1](../../photo1energy.png)
+.center[**Temps d'exécution : 0.2450837s**]
 
 ---
 
-# Vérification de l'orthonormalité - Théorie
-
-
-
-## **Définition** de l'orthonormalité
-
-`$$ \forall(n,n')\in\mathbb{N}^2,\, I = \langle \psi_{n'},\psi_n 
-\rangle=\displaystyle \int_{\mathbb{R}} \psi_{n'}^*(z)\psi_n(z) \, 
-\mathrm{d}z = \delta_{nn'} $$`
-
-On considère que : `$$\psi_{n}(z) = \frac{1}{\sqrt{2^n 
-n!}}\left(\frac{m\omega}{\pi\hbar}\right)^{1/4}\mathrm{e}^{-
-\frac{m\omega z^2}{2\hbar}}H_n\left(\sqrt{\frac{m\omega}{\hbar}} 
-z\right)$$`
-
-On note `$K_{n,n'}$` la constante : `$$ K_{n,n'} = 
-\frac{1}{\sqrt{2^nn!}} \frac{1}{\sqrt{2^{n'}n'!}} \left( 
-\frac{m\omega}{\pi\hbar} \right)^{\frac{1}{2}}$$`
-
-On obtient après calcul : `$$ I = K_{n,n'}\int_{\mathbb{R}} 
-\mathrm{e}^{-\frac{m\omega z^2}{\hbar}} H_{n'}\left( 
-\sqrt{\frac{m\omega}{\hbar}}z \right) H_n\left( 
-\sqrt{\frac{m\omega}{\hbar}}z \right) \mathrm{d}z$$`
-
-On effectue le changement de variable `$x = 
-\sqrt{\frac{m\omega}{\hbar}}z$`, et on obtient alors : `$$ 
-\fbox{$\displaystyle I = \frac{1}{\sqrt{2^n n!}} \frac{1}{\sqrt{2^{n'} 
-n'!}} \frac{1}{\sqrt{\pi}} 
-\int_{\mathbb{R}}\mathrm{e}^{-x^2}H_{n'}(x)H_n(x)\, \mathrm{d}x$} $$`
-
----
-
-# Orthonormalité - Des formules
-
-`$$ \fbox{$\displaystyle I = \frac{1}{\sqrt{2^n n!}} 
-\frac{1}{\sqrt{2^{n'} n'!}} \frac{1}{\sqrt{\pi}} 
-\int_{\mathbb{R}}\mathrm{e}^{-x^2}H_{n'}(x)H_n(x)\, \mathrm{d}x$} $$`
-
-----
-
-## **Approximation** de l'intégrale en somme
-
-`$$ \int_{a}^b \omega(x)g(x) dx \simeq 
-\sum_{i=0}^{k-1}w^\omega_ig(x^\omega_i) $$`
-
- Approximation **valide** si et seulement si `$g$` polynôme de degré 
-`$2k-1$` ou moins.
-
-## **Approximation** de l'orthonormalité
-
-`$$ \fbox{$\displaystyle I \simeq \frac{1}{\sqrt{2^{n+n'} n!n'!\pi}} 
-\sum_{i=0}^{k-1} w_i^{\omega} H_n(x_i^{\omega}) H_{n'}(x_i^{\omega})$} 
-$$`
-
- Si `$2k-1 \geqslant nn'$`, alors c'est une égalité.
-
-
----
-
-
-
-# Vérification de l'orthonormalité - Pratique
-
-.alert.tree.hcenter[
-`projet`
-  * `orthonormality.h`
-  * `orthonormality.cpp`
-]
-
-`orthonormality.h` :
+#Calcul de la densité locale - Implémentation
+## solver.cpp - Version n°2
 ```c++
-class Orthonormality {
-private:
-    double mass, omega, hbar;
-    int n, m;
-    
-    std::vector<double> nodes;
-    std::vector<double> weights;
-    
-public:
-    Orthonormality(double mass_val, double omega_val, double hbar_val, int n_val, int m_val);
-    
-    double hermitePolynomial(int n, double x);
-    double scalarProduct();
-    bool verifyOrthonormality();
-    void initializeGaussHermite(int k = 10);
-};
+arma::mat Solver::version2(arma::Col<double> rVals, arma::Col<double> zVals) {
+  arma::mat result = arma::zeros(rVals.size(), zVals.size()); // number of points on r- and z- axes
+  // a and b are used to convert 
+  uint a = 0;
+  uint b = 0;
+  // loop over all indexes
+  for (int m = 0; m < basis.mMax; m++) 
+  {
+    for (int n = 0; n < basis.nMax(m); n++)
+    {
+      for (int n_z = 0; n_z < basis.n_zMax(m, n); n_z++) 
+      {
+          for (int np = 0; np < n+1; np++)
+          {
+            for (int n_zp = 0; n_zp < (np < n ? basis.n_zMax(m, np) : n_z+1); n_zp++)
+            {
+              a = indices(m, n, n_z);
+              b = indices(m, np, n_zp);
+                // calculate density for those indexes
+                arma::mat funcA = basis.basisFunc( m,  n,  n_z, zVals, rVals);
+                arma::mat funcB = basis.basisFunc(m, np, n_zp, zVals, rVals);
+                if (a == b){
+                  result += funcA % funcB * rho(a, b); // mat += mat % mat * double
+                }
+                else if (a > b){
+                  result += 2 * funcA % funcB * rho(a, b);
+                }
+            } // n_zp
+          } // np
+      } // n_z
+    } // n
+  } // m
+  return result;
+}
 
-void testOrthonormality();
 ```
 
+.center[**Temps d'exécution : 0.1273045s**]
 ---
-`main.cpp` :
+
+#Calcul de la densité locale - Implémentation
+## solver.cpp - Version n°3
+
 ```c++
-int main() {
-    
-    //  === Partie Graphique Solution Phi ===
-    //Initialise le vecteur des points où on calcule les valeurs de la fonction
-    OneDHOSolution solver;
-    float borneSegment = 6.0; // Sur le segment [-6 , 6]
-    int nbEchantillons = 2000;
-    arma::rowvec vecteurAbscisses(nbEchantillons);
-    for (int i = 0; i < nbEchantillons; i++) vecteurAbscisses(i) = (i/(float) nbEchantillons) * (borneSegment * 2)   - borneSegment;  
+arma::mat Solver::version3(arma::Col<double> rVals, arma::Col<double> zVals) {
+  arma::mat result = arma::zeros(rVals.size(), zVals.size()); // number of points on r- and z- axes
+  // a and b are used to convert 
+  uint a = 0;
+  uint b = 0;
+  // loop over all indexes
+  for (int m = 0; m < basis.mMax; m++) 
+  {
+    for (int n = 0; n < basis.nMax(m); n++)
+    {
+      for (int n_z = 0; n_z < basis.n_zMax(m, n); n_z++) 
+      {
+          a = indices(m, n, n_z);
+          arma::mat funcA = basis.basisFunc( m,  n,  n_z, zVals, rVals);
+          for (int np = 0; np < n+1; np++)
+          {
+            for (int n_zp = 0; n_zp < (np < n ? basis.n_zMax(m, np) : n_z+1); n_zp++)
+            {
+              b = indices(m, np, n_zp);
+              // calculate density for those indexes
+              arma::mat funcB = basis.basisFunc(m, np, n_zp, zVals, rVals);
+              if (a == b){
+                result += funcA % funcB * rho(a, b); // mat += mat % mat * double
+              }
+              else if (a > b){
+                result += 2 * funcA % funcB * rho(a, b);
+              }
+            } // n_zp
+          } // np
+      } // n_z
+    } // n
+  } // m
+  return result;
+}
+``` 
+.center[**Temps d'exécution : 0.07922965s**]
+---
+#Calcul de la densité locale - Implémentation
+## solver.cpp - Version n°4
 
-    //Initialise la matrice des résultats
-    arma::mat matResults = arma::zeros<arma::mat>(11, nbEchantillons);
-    matResults.row(0) = vecteurAbscisses;
-    std::cout << "rentre dans la boucle " << std::endl;
-
-    //Calcul
-    for (int i = 0 ; i < 10; i++) matResults.row(i+1) =  solver.OneDHOSolutionCalc(i, vecteurAbscisses, nbEchantillons);
-
-    matResults.save("Resultats.csv", arma::csv_ascii);
-    std::cout << "Résultats exportées avec succès" << std::endl;
-    //=== ===
-
-    return 0;
+```c++
+arma::mat Solver::version4(arma::Col<double> rVals, arma::Col<double> zVals) {
+  arma::mat result = arma::zeros(rVals.size(), zVals.size()); // number of points on r- and z- axes
+  // a and b are used to convert 
+  uint a = 0;
+  uint b = 0;
+  for (int m = 0; m < basis.mMax; m++) {
+    for (int n = 0; n < basis.nMax(m); n++) {
+      for (int n_z = 0; n_z < basis.n_zMax(m, n); n_z++) {
+        a = indices(m, n, n_z);
+        arma::mat funcA = basis.basisFunc(m, n, n_z, zVals, rVals);
+        result += funcA % funcA * rho(a, a); // diagonal
+        for (int np = 0; np < n; np++) {
+          for (int n_zp = 0; n_zp < basis.n_zMax(m, np); n_zp++) {
+            b = indices(m, np, n_zp);
+            arma::mat funcB = basis.basisFunc(m, np, n_zp, zVals, rVals);
+            result += 2 * funcA % funcB * rho(a, b);
+          }
+        }
+        for (int n_zp = 0; n_zp < n_z; n_zp++) {
+          b = indices(m, n, n_zp);
+          arma::mat funcB = basis.basisFunc(m, n, n_zp, zVals, rVals);
+          result += 2 * funcA % funcB * rho(a, b);
+        }
+      }
+    }
+  }
+  return result;
+}
 ```
+.center[**Temps d'exécution : 0.077926615s**]
+---
+
+
+#Calcul de la densité locale - Implémentation
+## solver.cpp - Version n°5
+
+```c++
+arma::mat Solver::version5(arma::Col<double> rVals, arma::Col<double> zVals) {
+  arma::mat result = arma::zeros(rVals.size(), zVals.size()); // number of points on r- and z- axes
+  // a and b are used to convert
+  uint a = 0;
+  uint b = 0;
+  // variables to store calculated values
+  arma::vec rPartA, zPartA, rPartB, zPartB;
+  for (int m = 0; m < basis.mMax; m++) {
+    for (int n = 0; n < basis.nMax(m); n++) {
+      rPartA = basis.rPart(rVals, m, n); // calculate rpart for A
+      for (int n_z = 0; n_z < basis.n_zMax(m, n); n_z++) {
+        a = indices(m, n, n_z);
+        zPartA = basis.zPart(zVals, n_z); // calculate zpart for A and funcA
+        arma::mat funcA = rPartA * zPartA.t();
+        result += funcA % funcA * rho(a, a); // add to result the computed value on the diagonal at index a
+        for (int np = 0; np < n; np++) {
+          rPartB = basis.rPart(rVals, m, np); // calculate rpart for B
+          for (int n_zp = 0; n_zp < basis.n_zMax(m, np); n_zp++) {
+            b = indices(m, np, n_zp);
+            zPartB = basis.zPart(zVals, n_zp); // calculate zpart for B and funcB
+            arma::mat funcB = rPartB * zPartB.t();
+            result += 2 * funcA % funcB * rho(a, b); // add to result computed value twice (because rho is diag)
+          } // n_zp
+        } // np
+        for (int n_zp = 0; n_zp < n_z; n_zp++) { // Do one more pass of n_zp for when np == n.
+          b = indices(m, n, n_zp);
+          zPartB = basis.zPart(zVals, n_zp);
+          arma::mat funcB = rPartA * zPartB.t(); // We can use rPartA here because np == n, thus rPartA == rPartB
+          result += 2 * funcA % funcB * rho(a, b);
+        } // n_zp
+      } // n_z
+    } // n
+  } // m
+  return result;
+}
+```
+.center[**Temps d'exécution :0.063049675s**]
 
 ---
 
-# Makefile
+#Calcul de la densité locale - Implémentation
+## Comparaison des performances
 
-Extrait du `Makefile` :
+![Comparaison des temps d'exécution](images/timing_comparison.png)
 
-```Makefile
-CC = g++
-CPPLIBRARY = /home/mathys.vachon/barbiie/armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo
-CFLAGS = -Wall -std=c++17
-LDFLAGS = -lblas -llapack
-EXEC = barbiie
-ORTHO_EXEC = orthonormality_test
-ENERGY_EXEC = energy_verification
-
-all: $(EXEC) $(ORTHO_EXEC) $(ENERGY_EXEC)
-
-$(EXEC): main.o OneDHOSolution.o Hermit.o
-	$(CC) -o $@ $^ $(CFLAGS) -I $(CPPLIBRARY) $(LDFLAGS)
-$(ORTHO_EXEC): orthonormality.o
-	$(CC) -o $@ $^ $(CFLAGS) -I $(CPPLIBRARY) $(LDFLAGS)
-$(ENERGY_EXEC): energy_verification.o OneDHOSolution.o energy.o Hermit.o
-	$(CC) -o $@ $^ $(CFLAGS) -I $(CPPLIBRARY) $(LDFLAGS)
-
-main.o: main.cpp OneDHOSolution.h
-	$(CC) $(CFLAGS) -I $(CPPLIBRARY) -c main.cpp
-OneDHOSolution.o: OneDHOSolution.cpp OneDHOSolution.h Hermit.h 
-	$(CC) $(CFLAGS) -I $(CPPLIBRARY) -c OneDHOSolution.cpp
-Hermit.o: Hermit.cpp Hermit.h
-	$(CC) $(CFLAGS) -I $(CPPLIBRARY) -c Hermit.cpp
-orthonormality.o: orthonormality.cpp orthonormality.h
-	$(CC) $(CFLAGS) -I $(CPPLIBRARY) -c orthonormality.cpp
-energy_verification.o: energy_verification.cpp OneDHOSolution.h energy.h
-	$(CC) $(CFLAGS) -I $(CPPLIBRARY) -c energy_verification.cpp
-energy.o: energy.cpp energy.h
-	$(CC) $(CFLAGS) -I $(CPPLIBRARY) -c energy.cpp
-clean:
-	rm -f *.o $(EXEC) $(ORTHO_EXEC) $(ENERGY_EXEC)
-test-ortho: $(ORTHO_EXEC)
-	./$(ORTHO_EXEC)
-test-energy: $(ENERGY_EXEC)
-	./$(ENERGY_EXEC)
-
-.PHONY: all clean test-ortho test-energy
-
-```
-
-
+---
 
     </textarea>
 
