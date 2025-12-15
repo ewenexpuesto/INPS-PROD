@@ -1,1 +1,6 @@
 .venv/
+*.df3
+*.o
+main
+*.csv
+*.png
