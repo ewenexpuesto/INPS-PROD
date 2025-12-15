@@ -1,5 +1,5 @@
-#include "OneDHOSolution.h"
-#include "Hermit.h"
+#include "../include/OneDHOSolution.h"
+#include "../include/Hermit.h"
 #include <cmath>
 #include <cstdio>
 

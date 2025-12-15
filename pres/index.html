@@ -44,15 +44,15 @@ Projet INPS | Ewen Expuesto, Wissal Jalfa, Mathys Vachon
 class: toc top
 # Table des matières
 
-1. Polynôme de Laguerre
+- Polynôme de Laguerre
 
-2. Vérification de l'énergie
+- Vérification de l'énergie
 
-3. Vérification de l'orthonormalité
+- Vérification de l'orthonormalité
 
-4. Main
+- Main
 
-5. Makefile
+- Makefile
 
 ---
 
@@ -69,7 +69,7 @@ class: toc top
 `$$\forall n\geqslant 2,\, H_{n}(z) = 2zH_{n-1}(z)-2(n-1)H_{n-2}(z).$$`
 ---
 
-# Polynôme de Laguerre - Théorie
+# Polynôme de Laguerre - Implémentation
 ## Implémentation :
 
 ```c++
@@ -96,7 +96,7 @@ private :
 
 ```
 ---
-# Polynôme de Laguerre - Code
+# Polynôme de Laguerre - Implémentation
 ## Implémentation :
 
 ```c++
@@ -244,7 +244,7 @@ Sommes imbriquées ⇒ Recherche d'**optimisation** des calculs !
 
 .alert.tree.hcenter[
 `INPS-PROD/`
-  * `inc/`
+  * `include/`
     * `basis.h`
     * `solver.h`
   * `src/`
@@ -560,7 +560,7 @@ arma::mat Solver::version5(arma::Col<double> rVals, arma::Col<double> zVals) {
     var slideshow = remark.create(
     {
       highlightStyle: 'monokai',
-      countIncrementalSlides: false,
+      countincluderementalSlides: false,
       highlightLines: false
     });
 

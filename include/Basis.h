@@ -1,7 +1,7 @@
 #ifndef BASIS_H
 #define BASIS_H
 
-#include "armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
+#include "../armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
 
 /**
  * @brief Encapsulates the truncated cylindrical harmonic oscillator basis.

@@ -3,7 +3,7 @@
 
 #include "Basis.h"
 
-#include "armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
+#include "../armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
 
 // Solver class to calculate the nuclear density with all different level of optimisation 
 

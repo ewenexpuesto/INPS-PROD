@@ -1,4 +1,4 @@
-#include "Hermit.h"
+#include "../include/Hermit.h"
 
 Hermit::Hermit(int ordreN, const arma::rowvec& zValues_) {
     ordreMax = ordreN;

@@ -1,8 +1,8 @@
 # INPS Project — Run & Visualization Guide
 
-Build and generate DF3 volumes
+Always from the root of the project.
 
-## Build the project (uses the Makefile)
+## Build the project
 
 ```bash
 make
@@ -21,23 +21,31 @@ This will generate files:
 ## Visualize with Python
 
 ```bash
-python3 Plot_densities_3D.py density_version5.df3
+python3 src/Plot_densities_3D.py density_version5.df3
 ```
+
+You can change the version used by changing density_version5.df3 to density_version4.df3 for instance.
 
 ## POV-Ray rendering
 
 ```bash
 # Full HD with antialiasing
-povray +Ipovray.pov +Odensity_df3_render_HD.png +W1920 +H1080 +A0.1 +UA
+povray +Isrc/povray.pov +Odensity_df3_render_HD.png +W1920 +H1080 +A0.1 +UA
 
 # 4K with stronger antialiasing
-povray +Ipovray.pov +Odensity_df3_render_4K.png +W3840 +H2160 +A0.05 +UA
+povray +Isrc/povray.pov +Odensity_df3_render_4K.png +W3840 +H2160 +A0.05 +UA
 ```
 
 You might need to modify the povray. Look for "// HERE".
 
+## Performance visualization
+
+```bash
+python3 src/Speedup_graph.py
+```
+
 ## Doxygen documentation
 
 ```bash
-doxygen Doxyfile
+doxygen src/Doxyfile
 ```

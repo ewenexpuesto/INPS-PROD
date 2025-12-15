@@ -1,7 +1,7 @@
 #ifndef BARBIIE_ONEDHOSOLUTION_H
 #define BARBIIE_ONEDHOSOLUTION_H
 
-#include "armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
+#include "../armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
 
 /**
  * @brief Closed-form solution utilities for the 1D harmonic oscillator.

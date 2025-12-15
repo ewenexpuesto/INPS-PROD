@@ -1,8 +1,8 @@
 // #include "Poly.h"
-#include "Basis.h"
-#include "Poly.h"
-#include "Solver.h"
-#include "armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
+#include "../include/Basis.h"
+#include "../include/Poly.h"
+#include "../include/Solver.h"
+#include "../armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
 
 #include <algorithm>
 #include <cassert>
