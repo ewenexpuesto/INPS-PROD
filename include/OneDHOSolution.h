@@ -1,5 +1,5 @@
-#ifndef BARBIIE_ONEDHOSOLUTION_H
-#define BARBIIE_ONEDHOSOLUTION_H
+#ifndef ONEDHOSOLUTION_H
+#define ONEDHOSOLUTION_H
 
 #include "../armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
 

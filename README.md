@@ -16,9 +16,11 @@ make
 
 This will generate files:
 
-- `density_version0.df3` ... `density_version5.df3` are DF3 volumetric files
+`density_version0.df3` ... `density_version5.df3` are DF3 volumetric files
 
 ## Visualize with Python
+
+Be sure to have installed all necessary libraries.
 
 ```bash
 python3 src/Plot_densities_3D.py density_version5.df3
