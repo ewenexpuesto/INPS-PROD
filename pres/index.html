@@ -737,7 +737,7 @@ arma::mat Basis::basisFunc(int m, int n, int n_z, const arma::vec& zVals, const 
 
 ---
 
-# Calcul de la densité locale
+# Calcul de la densité locale - Théorie
 
 ## Rappel de la formule pour calculer la densité locale
 
@@ -761,9 +761,7 @@ Sommes imbriquées ⇒ Recherche d'**optimisation** des calculs !
     * `solver.cpp`
 ]
 
-.center[Figure : Extrait de l'arborescence implémentant la classe **Solver** et ses tests unitaires]
-
-## solver.h - Un extrait
+## Extrait de `solver.h`
 
 ```c++
 class Solver {
@@ -777,20 +775,12 @@ public:
     arma::mat version5(const arma::vec&, const arma::vec&);
 };
 ```
----
-arma::mat Poly::calcSliceN(int n, arma::mat sliceNMoins1, arma::mat sliceNMoins2 , arma::mat mat1 , arma::mat mat2)
-{
-
-    arma::mat sliceN = arma::mat(sliceNMoins1.n_rows, sliceNMoins1.n_cols , arma::fill::zeros);
-    sliceN = (mat2 + (matFact1/ n)) % sliceNMoins1 - (mat1 + (matFact2/ n) % sliceNMoins2);
-    return (sliceN);
-}
 
 ---
 
-# Fonction `$\psi$` et polynôme d'Hermite - Pratique
+# Calcul de la densité locale - Implémentation
 
-Voici le code de la méthode `OneDHOSolutionCalc` :
+## `solver.cpp` - Version n°0
 
 ```c++
 arma::mat Solver::version0(arma::Col<double> rVals, arma::Col<double> zVals) {
@@ -832,8 +822,9 @@ arma::mat Solver::version0(arma::Col<double> rVals, arma::Col<double> zVals) {
 
 ---
 
-#Calcul de la densité locale - Implémentation
-## solver.cpp - Version n°1
+# Calcul de la densité locale - Implémentation
+
+## `solver.cpp` - Version n°1
 ```c++
 arma::mat Solver::version1(arma::Col<double> rVals, arma::Col<double> zVals) {
   arma::mat result = arma::zeros(rVals.size(), zVals.size()); // number of points on r- and z- axes
@@ -874,8 +865,9 @@ arma::mat Solver::version1(arma::Col<double> rVals, arma::Col<double> zVals) {
 
 ---
 
-#Calcul de la densité locale - Implémentation
-## solver.cpp - Version n°2
+# Calcul de la densité locale - Implémentation
+
+## `solver.cpp` - Version n°2
 ```c++
 arma::mat Solver::version2(arma::Col<double> rVals, arma::Col<double> zVals) {
   arma::mat result = arma::zeros(rVals.size(), zVals.size()); // number of points on r- and z- axes
@@ -917,8 +909,9 @@ arma::mat Solver::version2(arma::Col<double> rVals, arma::Col<double> zVals) {
 .center[**Temps d'exécution : 0.1273045s**]
 ---
 
-#Calcul de la densité locale - Implémentation
-## solver.cpp - Version n°3
+# Calcul de la densité locale - Implémentation
+
+## `solver.cpp` - Version n°3
 
 ```c++
 arma::mat Solver::version3(arma::Col<double> rVals, arma::Col<double> zVals) {
@@ -958,8 +951,9 @@ arma::mat Solver::version3(arma::Col<double> rVals, arma::Col<double> zVals) {
 ``` 
 .center[**Temps d'exécution : 0.07922965s**]
 ---
-#Calcul de la densité locale - Implémentation
-## solver.cpp - Version n°4
+# Calcul de la densité locale - Implémentation
+
+## `solver.cpp` - Version n°4
 
 ```c++
 arma::mat Solver::version4(arma::Col<double> rVals, arma::Col<double> zVals) {
@@ -995,8 +989,9 @@ arma::mat Solver::version4(arma::Col<double> rVals, arma::Col<double> zVals) {
 ---
 
 
-#Calcul de la densité locale - Implémentation
-## solver.cpp - Version n°5
+# Calcul de la densité locale - Implémentation
+
+## `solver.cpp` - Version n°5
 
 ```c++
 arma::mat Solver::version5(arma::Col<double> rVals, arma::Col<double> zVals) {
@@ -1039,7 +1034,33 @@ arma::mat Solver::version5(arma::Col<double> rVals, arma::Col<double> zVals) {
 
 ---
 
-#Calcul de la densité locale - Implémentation
+# Calcul de la densité locale - Tests
+
+Le code suivant permet de mesurer la vitesse d'exécution de la `version0` :
+
+```c++
+    arma::wall_clock wclock;
+
+    wclock.tic();
+    arma::mat density0 = solver.version0(visualizationR, visualizationZ);
+    double elapsed0 = wclock.toc();
+    std::cout << "Solver::version0 -> " << elapsed0 << " s; density size: "
+              << density0.n_rows << "x" << density0.n_cols << std::endl;
+
+    // CODE POUR CALCULER LE CUBE RHO QUI SERA VU APRES
+
+    wclock.tic();
+    arma::cube cube0 = buildCubeFromMatrix(density0);
+    double cubeElapsed0 = wclock.toc();
+    std::cout << "rho(X,Y,Z) version0 -> " << cubeElapsed0 << " s; cube size: "
+              << cube0.n_rows << "x" << cube0.n_cols << "x" << cube0.n_slices << std::endl;
+    saveCubeAsDf3(cube0, "density_version0.df3");
+```
+
+---
+
+# Calcul de la densité locale - Résultats
+
 ## Comparaison des performances
 
 ![Comparaison des temps d'exécution](images/timing_comparison.png)
@@ -1113,7 +1134,7 @@ Et les tests vus précédemment.
 
 ---
 
-# Povray & visualisation
+# Povray & visualisation - Python
 
 .alert.tree.hcenter[
 `INPS-PROD/`
@@ -1184,7 +1205,7 @@ Passage de la 2D à la 3D à l'aide de la symétrie cylindrique autour de l'axe 
 
 ---
 
-# Povray & visualisation
+# Povray & visualisation - Résultat
 
 .alert.tree.hcenter[
 `INPS-PROD/`
