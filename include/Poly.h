@@ -1,7 +1,7 @@
 #ifndef POLY_H
 #define POLY_H
 
-#include "armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
+#include "../armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
 
 /**
  * @brief Utility class for generating Hermite and Laguerre polynomial tables.

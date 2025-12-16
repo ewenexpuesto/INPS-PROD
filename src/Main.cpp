@@ -1,18 +1,70 @@
 // #include "Poly.h"
-#include "Basis.h"
-#include "Poly.h"
-#include "Solver.h"
-#include "armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
+#include "../include/Basis.h"
+#include "../include/Poly.h"
+#include "../include/Solver.h"
+#include "../armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #define TS_ASSERT_EQUALS(lhs, rhs) assert((lhs) == (rhs))
 #define TS_ASSERT(expr) assert((expr))
 #define TS_ASSERT_DELTA(lhs, rhs, delta) assert(std::abs((lhs) - (rhs)) <= (delta))
+
+std::string cubeToDf3(const arma::cube& m)
+{
+    std::stringstream ss(std::stringstream::out | std::stringstream::binary);
+    int nx = static_cast<int>(m.n_rows);
+    int ny = static_cast<int>(m.n_cols);
+    int nz = static_cast<int>(m.n_slices);
+    ss.put(static_cast<char>(nx >> 8));
+    ss.put(static_cast<char>(nx & 0xff));
+    ss.put(static_cast<char>(ny >> 8));
+    ss.put(static_cast<char>(ny & 0xff));
+    ss.put(static_cast<char>(nz >> 8));
+    ss.put(static_cast<char>(nz & 0xff));
+    double theMin = 0.0;
+    double theMax = m.max();
+    double denom = theMax - theMin;
+    if (denom == 0.0)
+    {
+        denom = 1.0;
+    }
+    for (arma::uword k = 0; k < m.n_slices; ++k)
+    {
+        for (arma::uword j = 0; j < m.n_cols; ++j)
+        {
+            for (arma::uword i = 0; i < m.n_rows; ++i)
+            {
+                unsigned int v = static_cast<unsigned int>(
+                    255.0 * (std::fabs(m(i, j, k)) - theMin) / denom);
+                ss.put(static_cast<char>(v));
+            }
+        }
+    }
+    return ss.str();
+}
+
+void saveCubeAsDf3(const arma::cube& cube, const std::string& filename)
+{
+    std::string df3Data = cubeToDf3(cube);
+    std::ofstream out(filename, std::ios::binary);
+    if (!out)
+    {
+        std::cerr << "Failed to open " << filename << std::endl;
+        return;
+    }
+    out.write(df3Data.data(), static_cast<std::streamsize>(df3Data.size()));
+    std::cout << filename << " written (" << df3Data.size() << " bytes)" << std::endl;
+}
 
 int main()
 {
@@ -138,40 +190,140 @@ int main()
     }
     TS_ASSERT_EQUALS(basisVectorCount, 374);
     printf("Basis contains %d vectors as expected.\n", basisVectorCount);
+    
+    printf("All tests passed!\n");
 
     // Test #05 - Solver versions (simple benchmarks)
     Solver solver(basis);
+    arma::vec visualizationX = arma::linspace<arma::vec>(-10.0, 10.0, 32);
+    arma::vec visualizationY = arma::linspace<arma::vec>(-10.0, 10.0, 32);
+    arma::vec visualizationZ = arma::linspace<arma::vec>(-20.0, 20.0, 64);
+    arma::vec visualizationR(visualizationX.n_elem);
+    for (arma::uword i = 0; i < visualizationR.n_elem; ++i)
+    {
+        double x = visualizationX(i);
+        double y = visualizationY(i);
+        visualizationR(i) = std::sqrt(x * x + y * y);
+    }
+
     arma::wall_clock wclock;
-    // Helper lambda to time each solver version on the same grids
-    auto runVersion = [&](const char* label, auto&& fn) {
-        wclock.tic();
-        arma::mat density = fn(r, z);
-        double elapsed = wclock.toc();
-        std::cout << label << " -> " << elapsed << " s; density size: "
-                  << density.n_rows << "x" << density.n_cols << std::endl;
+
+    wclock.tic();
+    arma::mat density0 = solver.version0(visualizationR, visualizationZ);
+    double elapsed0 = wclock.toc();
+    std::cout << "Solver::version0 -> " << elapsed0 << " s; density size: "
+              << density0.n_rows << "x" << density0.n_cols << std::endl;
+
+    wclock.tic();
+    arma::mat density1 = solver.version1(visualizationR, visualizationZ);
+    double elapsed1 = wclock.toc();
+    std::cout << "Solver::version1 -> " << elapsed1 << " s; density size: "
+              << density1.n_rows << "x" << density1.n_cols << std::endl;
+
+    wclock.tic();
+    arma::mat density2 = solver.version2(visualizationR, visualizationZ);
+    double elapsed2 = wclock.toc();
+    std::cout << "Solver::version2 -> " << elapsed2 << " s; density size: "
+              << density2.n_rows << "x" << density2.n_cols << std::endl;
+
+    wclock.tic();
+    arma::mat density3 = solver.version3(visualizationR, visualizationZ);
+    double elapsed3 = wclock.toc();
+    std::cout << "Solver::version3 -> " << elapsed3 << " s; density size: "
+              << density3.n_rows << "x" << density3.n_cols << std::endl;
+
+    wclock.tic();
+    arma::mat density4 = solver.version4(visualizationR, visualizationZ);
+    double elapsed4 = wclock.toc();
+    std::cout << "Solver::version4 -> " << elapsed4 << " s; density size: "
+              << density4.n_rows << "x" << density4.n_cols << std::endl;
+
+    wclock.tic();
+    arma::mat density5 = solver.version5(visualizationR, visualizationZ);
+    double elapsed5 = wclock.toc();
+    std::cout << "Solver::version5 -> " << elapsed5 << " s; density size: "
+              << density5.n_rows << "x" << density5.n_cols << std::endl;
+
+    // Test #06 - Full 3D density calculation (rho(X,Y,Z) from rho(R,Z))
+    std::cout << "Test #06 - Building density cubes from rho(R, Z) grids" << std::endl;
+
+    arma::umat radialRowIndex(visualizationX.n_elem, visualizationY.n_elem, arma::fill::zeros);
+    for (arma::uword ix = 0; ix < visualizationX.n_elem; ++ix)
+    {
+        for (arma::uword iy = 0; iy < visualizationY.n_elem; ++iy)
+        {
+            double radius = std::sqrt(visualizationX(ix) * visualizationX(ix) + visualizationY(iy) * visualizationY(iy));
+            arma::uword closestIdx = 0;
+            double bestDiff = std::numeric_limits<double>::max();
+            for (arma::uword ir = 0; ir < visualizationR.n_elem; ++ir)
+            {
+                double diff = std::abs(visualizationR(ir) - radius);
+                if (diff < bestDiff)
+                {
+                    bestDiff = diff;
+                    closestIdx = ir;
+                }
+            }
+            radialRowIndex(ix, iy) = closestIdx;
+        }
+    }
+
+    auto buildCubeFromMatrix = [&](const arma::mat& rhoRZ)
+    {
+        arma::cube cube(visualizationX.n_elem, visualizationY.n_elem, visualizationZ.n_elem, arma::fill::zeros);
+        for (arma::uword ix = 0; ix < visualizationX.n_elem; ++ix)
+        {
+            for (arma::uword iy = 0; iy < visualizationY.n_elem; ++iy)
+            {
+                arma::uword rIdx = radialRowIndex(ix, iy);
+                for (arma::uword iz = 0; iz < visualizationZ.n_elem; ++iz)
+                {
+                    cube(ix, iy, iz) = rhoRZ(rIdx, iz);
+                }
+            }
+        }
+        return cube;
     };
 
-    runVersion("Solver::version0", [&](const arma::vec& rVals, const arma::vec& zVals) {
-        return solver.version0(rVals, zVals);
-    });
-    runVersion("Solver::version1", [&](const arma::vec& rVals, const arma::vec& zVals) {
-        return solver.version1(rVals, zVals);
-    });
-    runVersion("Solver::version2", [&](const arma::vec& rVals, const arma::vec& zVals) {
-        return solver.version2(rVals, zVals);
-    });
-    runVersion("Solver::version3", [&](const arma::vec& rVals, const arma::vec& zVals) {
-        return solver.version3(rVals, zVals);
-    });
-    runVersion("Solver::version4", [&](const arma::vec& rVals, const arma::vec& zVals) {
-        return solver.version4(rVals, zVals);
-    });
-    runVersion("Solver::version5", [&](const arma::vec& rVals, const arma::vec& zVals) {
-        return solver.version5(rVals, zVals);
-    });
-    
+    wclock.tic();
+    arma::cube cube0 = buildCubeFromMatrix(density0);
+    double cubeElapsed0 = wclock.toc();
+    std::cout << "rho(X,Y,Z) version0 -> " << cubeElapsed0 << " s; cube size: "
+              << cube0.n_rows << "x" << cube0.n_cols << "x" << cube0.n_slices << std::endl;
+    saveCubeAsDf3(cube0, "density_version0.df3");
 
-    printf("All tests passed!\n");
+    wclock.tic();
+    arma::cube cube1 = buildCubeFromMatrix(density1);
+    double cubeElapsed1 = wclock.toc();
+    std::cout << "rho(X,Y,Z) version1 -> " << cubeElapsed1 << " s; cube size: "
+              << cube1.n_rows << "x" << cube1.n_cols << "x" << cube1.n_slices << std::endl;
+    saveCubeAsDf3(cube1, "density_version1.df3");
 
-    return 0;
+    wclock.tic();
+    arma::cube cube2 = buildCubeFromMatrix(density2);
+    double cubeElapsed2 = wclock.toc();
+    std::cout << "rho(X,Y,Z) version2 -> " << cubeElapsed2 << " s; cube size: "
+              << cube2.n_rows << "x" << cube2.n_cols << "x" << cube2.n_slices << std::endl;
+    saveCubeAsDf3(cube2, "density_version2.df3");
+
+    wclock.tic();
+    arma::cube cube3 = buildCubeFromMatrix(density3);
+    double cubeElapsed3 = wclock.toc();
+    std::cout << "rho(X,Y,Z) version3 -> " << cubeElapsed3 << " s; cube size: "
+              << cube3.n_rows << "x" << cube3.n_cols << "x" << cube3.n_slices << std::endl;
+    saveCubeAsDf3(cube3, "density_version3.df3");
+
+    wclock.tic();
+    arma::cube cube4 = buildCubeFromMatrix(density4);
+    double cubeElapsed4 = wclock.toc();
+    std::cout << "rho(X,Y,Z) version4 -> " << cubeElapsed4 << " s; cube size: "
+              << cube4.n_rows << "x" << cube4.n_cols << "x" << cube4.n_slices << std::endl;
+    saveCubeAsDf3(cube4, "density_version4.df3");
+
+    wclock.tic();
+    arma::cube cube5 = buildCubeFromMatrix(density5);
+    double cubeElapsed5 = wclock.toc();
+    std::cout << "rho(X,Y,Z) version5 -> " << cubeElapsed5 << " s; cube size: "
+              << cube5.n_rows << "x" << cube5.n_cols << "x" << cube5.n_slices << std::endl;
+    saveCubeAsDf3(cube5, "density_version5.df3");
 }

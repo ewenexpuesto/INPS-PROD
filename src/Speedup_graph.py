@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Données d'exemple (remplacez par vos vraies données)
 versions = ['version0', 'version1', 'version2', 'version3', 'version4', 'version5']

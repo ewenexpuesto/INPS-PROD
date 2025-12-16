@@ -1,6 +1,6 @@
-#include "Basis.h"
-#include "OneDHOSolution.h"
-#include "Poly.h"
+#include "../include/Basis.h"
+#include "../include/OneDHOSolution.h"
+#include "../include/Poly.h"
 
 #include <cmath>
 #include <stdexcept>

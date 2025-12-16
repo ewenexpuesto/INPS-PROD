@@ -1,4 +1,4 @@
-#include "Poly.h"
+#include "../include/Poly.h"
 
 #include <stdexcept>
 

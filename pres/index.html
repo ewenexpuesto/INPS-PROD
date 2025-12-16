@@ -17,21 +17,21 @@
   </head>
   <body>
     <textarea id="source" readonly>
+
 class: titlepage
 
 .title[
 Projet INPS
 ]
 
-.subtitle[
 Ewen Expuesto, Wissal Jalfa, Mathys Vachon
-]
 
 .row-cet[
-`$$\int_{-\infty}^\infty f(x)e^{-x^2} \mathrm{d}x \simeq \sum_{i=0}^{n-1}w_if(x_i)$$`
+![density_df3_render_4K](../density_df3_render_4K.png)
 ]
 
 ---
+
 layout: true
 class: animated fadeIn middle numbers
 
@@ -41,18 +41,68 @@ Projet INPS | Ewen Expuesto, Wissal Jalfa, Mathys Vachon
 
 ---
 
-class: toc top
+# Introduction
+
+But : calcul de la densité locale en tout point d'un espace fini
+`$$\begin{aligned}
+\rho(\vec r) &= \sum_{a,b} \rho_{a,b}\,\psi_a(\vec r)\,\psi_b^{*}(\vec r) \\
+&= \sum_{m_a,n_a,n_{z_a}}\sum_{m_b,n_b,n_{z_b}}
+\rho_{m_a n_a n_{z_a},\,m_b n_b n_{z_b}}\;\psi_{m_a n_a n_{z_a}}(\vec r)\,\psi_{m_b n_b n_{z_b}}^{*}(\vec r)
+\end{aligned}$$` avec `$\rho_{m_a,n_a,n_{za},m_b,n_b,n_{zb}}$` donnée et `$\psi_{m,n,n_{z}}(\vec{r})$` appelée fonction basis à calculer et `$m$`, `$n$` et `$n_z$` des nombres quantiques.
+
+.alert.tree.hcenter[
+`INPS-PROD/`
+  * `README.md`
+  * `Makefile`
+  * `rho.arma`
+  * `docs/`
+  * `src/Doxyfile`
+]
+
+---
+
+class: toc
 # Table des matières
 
-1. Polynôme de Laguerre
+- Fonction basis
 
-2. Vérification de l'énergie
+- Fonction basis : polynôme de Laguerre
 
-3. Vérification de l'orthonormalité
+- Fonction basis : troncature
 
-4. Main
+- Fonction basis : fonctions `$Z$` et `$R$`
 
-5. Makefile
+- Calcul de $\rho(\vec{r})$
+
+- Main
+
+- Povray & visualisation
+
+---
+
+# Fonction basis
+
+En coordonnées cylindriques `$(r_{\perp},\theta,z)$`, la fonction basis est définie par :
+
+`$$
+\psi_{m,n,n_z}(r_{\perp},\theta,z) \equiv Z(z,n_z)\,R(r_{\perp},m,n)\,e^{i m \theta}
+$$`
+
+avec
+
+`$$
+Z(z,n_z) = \frac{1}{\sqrt{b_z}}\;\frac{1}{\sqrt{2^{\,n_z}\sqrt{\pi}\,n_z!}}\;e^{-\dfrac{z^2}{2 b_z^2}}\;H_{n_z}\!\left(\dfrac{z}{b_z}\right)
+$$`
+
+et
+
+`$$
+R(r_{\perp},m,n) \equiv \frac{1}{b_{\perp}\sqrt{\pi}}\sqrt{\frac{n!}{(n+|m|)!}}\;e^{-r_{\perp}^2/(2 b_{\perp}^2)}\left(\frac{r_{\perp}}{b_{\perp}}\right)^{|m|} L_n^{|m|}\!\left(\frac{r_{\perp}^2}{b_{\perp}^2}\right).
+$$`
+
+Les nombres quantiques `$m$`, `$n$` et `$n_z$` sont à déterminer, tandis que les paramètres de déformation de la base, `$b_{\perp}$` et `$b_z$`, sont donnés.
+
+Remarque : puisque l'on a `$\rho_{ab} = \delta_{m_a,m_b}\,\rho_{ab}$`, `$\rho(\vec r)$` ne dépend pas de `$\theta$` et donc ne prend que des valeurs réelles. Donc dans un premier temps, on peut travailler dans un plan et calculer `$$\psi_{m,n,n_z}(r_{\perp},z) \equiv Z(z,n_z)\,R(r_{\perp},m,n)$$`
 
 ---
 
@@ -86,7 +136,7 @@ L^{m}_{n}(\eta)&amp;=\left(2+\frac{m-1-\eta}{n}\right)L^{m}_{n-1}(\eta)-
 $$`
 ---
 
-# Polynôme de Laguerre - Théorie
+# Polynôme de Laguerre - Implémentation
 ## Implémentation :
 
 ```c++
@@ -113,7 +163,7 @@ private :
 
 ```
 ---
-# Polynôme de Laguerre - Code
+# Polynôme de Laguerre - Implémentation
 ## Implémentation :
 
 ```c++
@@ -243,9 +293,468 @@ arma::mat Poly::calcSliceN(int n, arma::mat sliceNMoins1, arma::mat sliceNMoins2
     ```
 ---
 
+# Fonction basis : troncature - Théorie
 
+Nous avons :
 
-# Calcul de la densité locale
+`$$
+\psi_{m,n,n_z}(r_{\perp},z) \equiv Z(z,n_z)\,R(r_{\perp},m,n)
+$$`
+
+On définit la fonction
+
+$$
+\nu(i) \equiv (N+2)\,Q^{2/3} + \tfrac{1}{2} - i\,Q
+$$
+
+et
+
+$$
+m^{\max} \equiv \sup\{\,i : \nu(i) \ge 1\,\}.
+$$
+
+Les valeurs possibles des nombres quantiques sont alors données par :
+
+$$
+0 \le m < mMax \equiv m^{\max}
+$$
+
+$$
+0 \le n < nMax[m] \equiv \tfrac{1}{2}\bigl(m^{\max} - m - 1\bigr) + 1
+$$
+
+$$
+0 \le n_z < n\_zMax[m,n] \equiv \nu\bigl(m + 2n + 1\bigr).
+$$
+
+Les paramètres $N \in \mathbb{N}^+$, $Q \in \mathbb{R}^+$ sont appelés les paramètres de troncature de la fonction basis.
+
+---
+
+# Fonction basis : troncature - Implémentation
+
+.alert.tree.hcenter[
+`INPS-PROD/`
+  * `include/`
+    * `basis.h`
+  * `src/`
+    * `basis.cpp`
+]
+
+```c++
+class Basis
+{
+public:
+    Basis(double br, double bz, int N, double Q);
+    arma::vec rPart(const arma::vec& r_perps, int m, int n) const;
+    arma::vec zPart(const arma::vec& zValues, int n_z) const;
+    arma::mat basisFunc(int m, int n, int n_z, const arma::vec& zVals, const arma::vec& rVals) const;
+
+    int mMax;
+    arma::ivec nMax;
+    arma::imat n_zMax;
+
+private:
+    double br_;
+    double bz_;
+    int N_;
+    double Q_;
+
+    static double compute_Nu(unsigned int i, double N, double Q);
+
+    int compute_mMax(double N, double Q);
+
+    arma::ivec compute_nMax();
+
+    arma::imat compute_nzMax(double N, double Q);
+};
+```
+
+---
+
+# Fonction basis : troncature - Implémentation
+
+```c++
+Basis::Basis(double br, double bz, int N, double Q)
+    : br_(br)
+    , bz_(bz)
+    , N_(N)
+    , Q_(Q)
+{
+    if (Q_ <= 0.0)
+    {
+        throw std::invalid_argument("Q must be positive.");
+    }
+    if (N_ <= 0)
+    {
+        throw std::invalid_argument("N must be a positive integer.");
+    }
+
+    mMax = compute_mMax(N_, Q_);
+    nMax = compute_nMax();
+    n_zMax = compute_nzMax(N_, Q_);
+}
+```
+
+---
+
+# Fonction basis : troncature - Implémentation
+
+```c++
+double Basis::compute_Nu(unsigned int i, double N, double Q)
+{
+    if (Q <= 0.0)
+    {
+        throw std::invalid_argument("Q must be positive.");
+    }
+    if (N <= 0.0)
+    {
+        throw std::invalid_argument("N must be positive.");
+    }
+
+    return (N + 2.0) * std::pow(Q, 2.0 / 3.0) + 0.5 - i * Q;
+}
+```
+
+---
+
+# Fonction basis : troncature - Implémentation
+
+```c++
+int Basis::compute_mMax(double N, double Q)
+{
+    const double nu0 = compute_Nu(0, N, Q);
+
+    if (nu0 < 1.0)
+    {
+        throw std::domain_error("No positive index i satisfies nu(i) >= 1.");
+    }
+
+    int i = 1;
+
+    // Find the largest integer i such that nu(i) >= 1 with nu being a decreasing function of i
+    while (compute_Nu(i, N, Q) >= 1.0)
+    {
+        ++i;
+    }
+
+    return i - 1;
+}
+```
+
+---
+
+# Fonction basis : troncature - Implémentation
+
+```c++
+arma::ivec Basis::compute_nMax()
+{
+    // Allocate a vector with dimension nMax
+    arma::ivec value(this->mMax);
+
+    for (int i = 0; i < this->mMax; ++i)
+    {
+        double resultval = 0.5 * (this->mMax - i - 1.0) + 1.0;
+
+        if (resultval < 0.0)
+        {
+            throw std::domain_error("Computed nMax element is negative; check input parameters.");
+        }
+
+        value(i) = resultval;
+    }
+
+    return value;
+}
+```
+
+---
+
+# Fonction basis : troncature - Implémentation
+
+```c++
+arma::imat Basis::compute_nzMax(double N, double Q)
+{
+    // Allocate matrix with dimensions (mMax) times (nMax)
+    int max_of_nMax = 0;
+    for (unsigned int i = 0; i < this->nMax.n_elem; ++i)
+    {
+        if (this->nMax(i) > max_of_nMax)
+        {
+            max_of_nMax = this->nMax(i);
+        }
+    }
+
+    arma::imat value(this->mMax, max_of_nMax, arma::fill::zeros);
+
+    for (int m = 0; m < this->mMax; ++m)
+    {
+        for (int n = 0; n < this->nMax(m); ++n)
+        {
+            double arg = m + 2.0 * n + 1.0;
+
+            double nuval = compute_Nu(arg, this->N_, this->Q_);
+
+            if (nuval < 0.0)
+            {
+                throw std::domain_error("Computed nzMax element is negative; check input parameters.");
+            }
+
+            value(m, n) = nuval;
+        }
+    }
+
+    return value;
+}
+```
+
+---
+
+# Fonction basis : troncature - Tests
+
+```c++
+    // Mandatory test #01 - Basis truncation
+    //     br = 1.935801664793151, bz = 2.829683956491218, N = 14, Q = 1.3
+    Basis basis(1.935801664793151,      2.829683956491218,     14,     1.3);
+    TS_ASSERT_EQUALS(basis.mMax, 14);
+    arma::ivec nMax = {7, 7, 6, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1};
+    TS_ASSERT((basis.nMax - nMax).is_zero());
+    arma::imat n_zMax = {{18, 15, 13, 10, 7, 5, 2}, 
+                        {16, 14, 11,  9, 6, 3, 1}, 
+                        {15, 13, 10,  7, 5, 2, 0}, 
+                        {14, 11,  9,  6, 3, 1, 0}, 
+                        {13, 10,  7,  5, 2, 0, 0}, 
+                        {11,  9,  6,  3, 1, 0, 0}, 
+                        {10,  7,  5,  2, 0, 0, 0}, 
+                        { 9,  6,  3,  1, 0, 0, 0}, 
+                        { 7,  5,  2,  0, 0, 0, 0}, 
+                        { 6,  3,  1,  0, 0, 0, 0}, 
+                        { 5,  2,  0,  0, 0, 0, 0}, 
+                        { 3,  1,  0,  0, 0, 0, 0}, 
+                        { 2,  0,  0,  0, 0, 0, 0}, 
+                        { 1,  0,  0,  0, 0, 0, 0}};
+    // check if matrices are equal
+    TS_ASSERT((basis.n_zMax - n_zMax).is_zero());
+
+    printf("Basis truncation tests passed!\n");
+```
+
+---
+
+# Fonction basis : fonctions `$Z$` et `$R$` - Théorie
+
+Nous avons :
+
+`$$
+\psi_{m,n,n_z}(r_{\perp},z) \equiv Z(z,n_z)\,R(r_{\perp},m,n)
+$$`
+
+---
+
+# Fonction basis : fonctions `$Z$` et `$R$` - Implémentation
+
+.alert.tree.hcenter[
+`INPS-PROD/`
+  * `include/`
+    * `basis.h`
+  * `src/`
+    * `basis.cpp`
+]
+
+```c++
+class Basis
+{
+public:
+    Basis(double br, double bz, int N, double Q);
+    arma::vec rPart(const arma::vec& r_perps, int m, int n) const;
+    arma::vec zPart(const arma::vec& zValues, int n_z) const;
+    arma::mat basisFunc(int m, int n, int n_z, const arma::vec& zVals, const arma::vec& rVals) const;
+
+    int mMax;
+    arma::ivec nMax;
+    arma::imat n_zMax;
+
+private:
+    double br_;
+    double bz_;
+    int N_;
+    double Q_;
+
+    static double compute_Nu(unsigned int i, double N, double Q);
+
+    int compute_mMax(double N, double Q);
+
+    arma::ivec compute_nMax();
+
+    arma::imat compute_nzMax(double N, double Q);
+};
+```
+
+---
+
+# Fonction basis : fonctions `$Z$` et `$R$` - Implémentation
+
+```c++
+arma::vec Basis::rPart(const arma::vec & r_perps, int m, int n) const
+{
+    if (n < 0)
+    {
+        throw std::invalid_argument("n must be non-negative");
+    }
+
+    double factorial1 = std::tgamma(static_cast<double>(n) + 1.0);
+    double factorial2 = std::tgamma(static_cast<double>(n) + static_cast<double>(std::abs(m)) + 1.0);
+
+    double coeff1 = (1.0 / (br_ * std::sqrt(kPi))) * std::sqrt(factorial1 / factorial2);
+
+    arma::vec coeff2 = arma::exp(-arma::square(r_perps) / (2.0 * br_ * br_));
+
+    const int abs_m = std::abs(m);
+    arma::vec coeff3 = arma::pow(r_perps / br_, abs_m);
+
+    arma::vec r_perpstemps = arma::square(r_perps) / (br_ * br_);
+
+    Poly laguerreHelper;
+    laguerreHelper.calcLaguerre(abs_m + 1, n + 1, r_perpstemps);
+    arma::vec laguerreVals = laguerreHelper.laguerre(abs_m, n);
+
+    return coeff1 * coeff2 % coeff3 % laguerreVals;
+}
+```
+
+---
+
+# Fonction basis : fonctions `$Z$` et `$R$` - Implémentation
+
+```c++
+arma::vec Basis::zPart(const arma::vec & zValues, int n_z) const
+{
+	if (n_z < 0)
+	{
+		throw std::invalid_argument("n_z must be non-negative");
+	}
+
+	if (bz_ <= 0.0)
+	{
+		throw std::invalid_argument("bz_ must be positive");
+	}
+
+    double factorial = std::tgamma(static_cast<double>(n_z) + 1.0);
+
+    double coeff = 1.0 / (std::sqrt(bz_) * std::pow(kPi, 0.25) * std::sqrt(std::pow(2.0, n_z) * factorial));
+
+    const arma::vec gaussian = arma::exp(-arma::square(zValues) / (2.0 * bz_ * bz_));
+    const arma::vec normalizedZ = zValues / bz_;
+
+    Poly hermiteHelper;
+    hermiteHelper.calcHermite(n_z, normalizedZ);
+    arma::vec hermiteVals = hermiteHelper.getHermiteRow(n_z);
+
+    return coeff * gaussian % hermiteVals;
+}
+```
+
+---
+
+# Fonction basis : fonctions `$Z$` et `$R$` - Implémentation
+
+```c++
+arma::mat Basis::basisFunc(int m, int n, int n_z, const arma::vec& zVals, const arma::vec& rVals) const
+{
+    arma::vec radial = rPart(rVals, m, n);
+    arma::vec axial = zPart(zVals, n_z);
+    return radial * axial.t();
+}
+```
+
+---
+
+# Fonction basis : fonctions `$Z$` et `$R$` - Tests
+
+```c++
+    // Mandatory test #02 - Basis r-functions
+    //     br = 1.935801664793151, bz = 2.829683956491218, N = 14, Q = 1.3
+    arma::vec r = {3.1, 2.3, 1.0, 0.0, 0.1, 4.3, 9.2, 13.7};
+    arma::vec res00 = { 8.08521235111303e-02,
+                        1.43887615825118e-01,
+                        2.55045100912706e-01,
+                        2.91450097294984e-01,
+                        2.91061479407116e-01,
+                        2.47240792330589e-02,
+                        3.63004153921473e-06,
+                        3.87659726026123e-12};
+    TS_ASSERT_DELTA(arma::norm(basis.rPart(r, 0, 0) - res00), 0.0, 1e-15);
+    arma::vec res82 = { 5.87858442372438e-02,
+                        1.35240488413384e-02,
+                        4.06810074575519e-05,
+                        0.00000000000000e+00,
+                        4.92817669085478e-13,
+                        8.52011998934850e-02,
+                        5.20525909328609e-02,
+                        1.44615166152252e-05};
+    TS_ASSERT_DELTA(arma::norm(basis.rPart(r, 8, 2) - res82), 0.0, 1e-15);
+
+    printf("Basis r-function tests passed!\n");
+```
+
+---
+
+# Fonction basis : fonctions `$Z$` et `$R$` - Tests
+
+```c++
+    // Mandatory test #03 - Basis z-functions
+    //     br = 1.935801664793151, bz = 2.829683956491218, N = 14, Q = 1.3
+    arma::vec z = {-10.1, -8.4, -1.0, 0.0, 0.1, 4.3, 9.2, 13.7};
+    arma::vec res00bis = { 7.64546544834383e-04,
+                        5.44886272162148e-03,
+                        4.19492564268520e-01,
+                        4.46522724110539e-01,
+                        4.46243982300708e-01,
+                        1.40736821086932e-01,
+                        2.26186220733178e-03,
+                        3.62929640195959e-06};
+    TS_ASSERT_DELTA(arma::norm(basis.zPart(z, 0) - res00bis), 0.0, 1e-15);
+    arma::vec res15 = {-9.48674551049192e-02,
+                        -1.40338701953237e-03,
+                        1.85620628040096e-01,
+                        -0.00000000000000e+00,
+                        -3.93028470685214e-02,
+                        -1.79526868763440e-01,
+                        2.15604096600475e-01,
+                        2.44977220882127e-01};
+    TS_ASSERT_DELTA(arma::norm(basis.zPart(z, 15) - res15), 0.0, 1e-15);
+
+    printf("Basis z-function tests passed!\n");
+```
+
+---
+
+# Fonction basis : fonctions `$Z$` et `$R$` - Tests
+
+```c++
+    // Test #04 - Basis size
+    int basisVectorCount = 0;
+    for (int m = 0; m < basis.mMax; ++m)
+    {
+        for (int n = 0; n < basis.nMax(m); ++n)
+        {
+            for (int n_z = 0; n_z < basis.n_zMax(m, n); ++n_z)
+            {
+                std::cout << "Basis vector " << basisVectorCount
+                          << ": m=" << m
+                          << " n=" << n
+                          << " n_z=" << n_z << std::endl;
+                ++basisVectorCount;
+            }
+        }
+    }
+    TS_ASSERT_EQUALS(basisVectorCount, 374);
+    printf("Basis contains %d vectors as expected.\n", basisVectorCount);
+```
+
+---
+
+# Calcul de la densité locale - Théorie
 
 ## Rappel de la formule pour calculer la densité locale
 
@@ -261,7 +770,7 @@ Sommes imbriquées ⇒ Recherche d'**optimisation** des calculs !
 
 .alert.tree.hcenter[
 `INPS-PROD/`
-  * `inc/`
+  * `include/`
     * `basis.h`
     * `solver.h`
   * `src/`
@@ -269,9 +778,7 @@ Sommes imbriquées ⇒ Recherche d'**optimisation** des calculs !
     * `solver.cpp`
 ]
 
-.center[Figure : Extrait de l'arborescence implémentant la classe **Solver** et ses tests unitaires]
-
-## solver.h - Un extrait
+## Extrait de `solver.h`
 
 ```c++
 class Solver {
@@ -285,20 +792,12 @@ public:
     arma::mat version5(const arma::vec&, const arma::vec&);
 };
 ```
----
-arma::mat Poly::calcSliceN(int n, arma::mat sliceNMoins1, arma::mat sliceNMoins2 , arma::mat mat1 , arma::mat mat2)
-{
-
-    arma::mat sliceN = arma::mat(sliceNMoins1.n_rows, sliceNMoins1.n_cols , arma::fill::zeros);
-    sliceN = (mat2 + (matFact1/ n)) % sliceNMoins1 - (mat1 + (matFact2/ n) % sliceNMoins2);
-    return (sliceN);
-}
 
 ---
 
-# Fonction `$\psi$` et polynôme d'Hermite - Pratique
+# Calcul de la densité locale - Implémentation
 
-Voici le code de la méthode `OneDHOSolutionCalc` :
+## `solver.cpp` - Version n°0
 
 ```c++
 arma::mat Solver::version0(arma::Col<double> rVals, arma::Col<double> zVals) {
@@ -340,8 +839,9 @@ arma::mat Solver::version0(arma::Col<double> rVals, arma::Col<double> zVals) {
 
 ---
 
-#Calcul de la densité locale - Implémentation
-## solver.cpp - Version n°1
+# Calcul de la densité locale - Implémentation
+
+## `solver.cpp` - Version n°1
 ```c++
 arma::mat Solver::version1(arma::Col<double> rVals, arma::Col<double> zVals) {
   arma::mat result = arma::zeros(rVals.size(), zVals.size()); // number of points on r- and z- axes
@@ -382,8 +882,9 @@ arma::mat Solver::version1(arma::Col<double> rVals, arma::Col<double> zVals) {
 
 ---
 
-#Calcul de la densité locale - Implémentation
-## solver.cpp - Version n°2
+# Calcul de la densité locale - Implémentation
+
+## `solver.cpp` - Version n°2
 ```c++
 arma::mat Solver::version2(arma::Col<double> rVals, arma::Col<double> zVals) {
   arma::mat result = arma::zeros(rVals.size(), zVals.size()); // number of points on r- and z- axes
@@ -425,8 +926,9 @@ arma::mat Solver::version2(arma::Col<double> rVals, arma::Col<double> zVals) {
 .center[**Temps d'exécution : 0.1273045s**]
 ---
 
-#Calcul de la densité locale - Implémentation
-## solver.cpp - Version n°3
+# Calcul de la densité locale - Implémentation
+
+## `solver.cpp` - Version n°3
 
 ```c++
 arma::mat Solver::version3(arma::Col<double> rVals, arma::Col<double> zVals) {
@@ -466,8 +968,9 @@ arma::mat Solver::version3(arma::Col<double> rVals, arma::Col<double> zVals) {
 ``` 
 .center[**Temps d'exécution : 0.07922965s**]
 ---
-#Calcul de la densité locale - Implémentation
-## solver.cpp - Version n°4
+# Calcul de la densité locale - Implémentation
+
+## `solver.cpp` - Version n°4
 
 ```c++
 arma::mat Solver::version4(arma::Col<double> rVals, arma::Col<double> zVals) {
@@ -503,8 +1006,9 @@ arma::mat Solver::version4(arma::Col<double> rVals, arma::Col<double> zVals) {
 ---
 
 
-#Calcul de la densité locale - Implémentation
-## solver.cpp - Version n°5
+# Calcul de la densité locale - Implémentation
+
+## `solver.cpp` - Version n°5
 
 ```c++
 arma::mat Solver::version5(arma::Col<double> rVals, arma::Col<double> zVals) {
@@ -547,11 +1051,190 @@ arma::mat Solver::version5(arma::Col<double> rVals, arma::Col<double> zVals) {
 
 ---
 
-#Calcul de la densité locale - Implémentation
+# Calcul de la densité locale - Tests
+
+Le code suivant permet de mesurer la vitesse d'exécution de la `version0` :
+
+```c++
+    arma::wall_clock wclock;
+
+    wclock.tic();
+    arma::mat density0 = solver.version0(visualizationR, visualizationZ);
+    double elapsed0 = wclock.toc();
+    std::cout << "Solver::version0 -> " << elapsed0 << " s; density size: "
+              << density0.n_rows << "x" << density0.n_cols << std::endl;
+
+    // CODE POUR CALCULER LE CUBE RHO QUI SERA VU APRES
+
+    wclock.tic();
+    arma::cube cube0 = buildCubeFromMatrix(density0);
+    double cubeElapsed0 = wclock.toc();
+    std::cout << "rho(X,Y,Z) version0 -> " << cubeElapsed0 << " s; cube size: "
+              << cube0.n_rows << "x" << cube0.n_cols << "x" << cube0.n_slices << std::endl;
+    saveCubeAsDf3(cube0, "density_version0.df3");
+```
+
+---
+
+# Calcul de la densité locale - Résultats
+
 ## Comparaison des performances
 
 ![Comparaison des temps d'exécution](images/timing_comparison.png)
 
+---
+
+# Main
+
+.alert.tree.hcenter[
+`INPS-PROD/`
+  * `src/`
+    * `Main.cpp`
+]
+
+```c++
+std::string cubeToDf3(const arma::cube& m)
+{
+    std::stringstream ss(std::stringstream::out | std::stringstream::binary);
+    int nx = static_cast<int>(m.n_rows);
+    int ny = static_cast<int>(m.n_cols);
+    int nz = static_cast<int>(m.n_slices);
+    ss.put(static_cast<char>(nx >> 8));
+    ss.put(static_cast<char>(nx & 0xff));
+    ss.put(static_cast<char>(ny >> 8));
+    ss.put(static_cast<char>(ny & 0xff));
+    ss.put(static_cast<char>(nz >> 8));
+    ss.put(static_cast<char>(nz & 0xff));
+    double theMin = 0.0;
+    double theMax = m.max();
+    double denom = theMax - theMin;
+    if (denom == 0.0)
+    {
+        denom = 1.0;
+    }
+    for (arma::uword k = 0; k < m.n_slices; ++k)
+    {
+        for (arma::uword j = 0; j < m.n_cols; ++j)
+        {
+            for (arma::uword i = 0; i < m.n_rows; ++i)
+            {
+                unsigned int v = static_cast<unsigned int>(
+                    255.0 * (std::fabs(m(i, j, k)) - theMin) / denom);
+                ss.put(static_cast<char>(v));
+            }
+        }
+    }
+    return ss.str();
+}
+```
+
+---
+
+# Main
+
+```c++
+void saveCubeAsDf3(const arma::cube& cube, const std::string& filename)
+{
+    std::string df3Data = cubeToDf3(cube);
+    std::ofstream out(filename, std::ios::binary);
+    if (!out)
+    {
+        std::cerr << "Failed to open " << filename << std::endl;
+        return;
+    }
+    out.write(df3Data.data(), static_cast<std::streamsize>(df3Data.size()));
+    std::cout << filename << " written (" << df3Data.size() << " bytes)" << std::endl;
+}
+```
+
+Et les tests vus précédemment.
+
+---
+
+# Povray & visualisation - Python
+
+.alert.tree.hcenter[
+`INPS-PROD/`
+  * `src/`
+    * `Plot_densities_3D.py`
+]
+
+Un .py rapide permet de vérifier visuellement que toutes les versions donnent le même résultat en 2D :
+
+.row-cet[
+![Povray render](images/image.png)
+]
+
+---
+
+# Povray & visualisation - Prérequis
+
+Passage de la 2D à la 3D à l'aide de la symétrie cylindrique autour de l'axe `z` :
+
+```c++
+    // Test #06 - Full 3D density calculation (rho(X,Y,Z) from rho(R,Z))
+    std::cout << "Test #06 - Building density cubes from rho(R, Z) grids" << std::endl;
+
+    arma::umat radialRowIndex(visualizationX.n_elem, visualizationY.n_elem, arma::fill::zeros);
+    for (arma::uword ix = 0; ix < visualizationX.n_elem; ++ix)
+    {
+        for (arma::uword iy = 0; iy < visualizationY.n_elem; ++iy)
+        {
+            double radius = std::sqrt(visualizationX(ix) * visualizationX(ix) + visualizationY(iy) * visualizationY(iy));
+            arma::uword closestIdx = 0;
+            double bestDiff = std::numeric_limits<double>::max();
+            for (arma::uword ir = 0; ir < visualizationR.n_elem; ++ir)
+            {
+                double diff = std::abs(visualizationR(ir) - radius);
+                if (diff < bestDiff)
+                {
+                    bestDiff = diff;
+                    closestIdx = ir;
+                }
+            }
+            radialRowIndex(ix, iy) = closestIdx;
+        }
+    }
+```
+
+---
+
+# Povray & visualisation - Prérequis
+
+```c++
+    auto buildCubeFromMatrix = [&](const arma::mat& rhoRZ)
+    {
+        arma::cube cube(visualizationX.n_elem, visualizationY.n_elem, visualizationZ.n_elem, arma::fill::zeros);
+        for (arma::uword ix = 0; ix < visualizationX.n_elem; ++ix)
+        {
+            for (arma::uword iy = 0; iy < visualizationY.n_elem; ++iy)
+            {
+                arma::uword rIdx = radialRowIndex(ix, iy);
+                for (arma::uword iz = 0; iz < visualizationZ.n_elem; ++iz)
+                {
+                    cube(ix, iy, iz) = rhoRZ(rIdx, iz);
+                }
+            }
+        }
+        return cube;
+    };
+```
+
+---
+
+# Povray & visualisation - Résultat
+
+.alert.tree.hcenter[
+`INPS-PROD/`
+  * `src/`
+    * `povray.pov`
+]
+
+.row-cet[
+![Povray render](../density_df3_render_4K.png)
+]
+
+---
 ---
 
     </textarea>
@@ -577,7 +1260,7 @@ arma::mat Solver::version5(arma::Col<double> rVals, arma::Col<double> zVals) {
     var slideshow = remark.create(
     {
       highlightStyle: 'monokai',
-      countIncrementalSlides: false,
+      countincluderementalSlides: false,
       highlightLines: false
     });
 

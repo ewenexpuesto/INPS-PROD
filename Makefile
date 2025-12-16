@@ -4,7 +4,7 @@ CXXFLAGS := -Wall -O3 -std=c++14 -Iarmadillo-code-15.0.x/armadillo-code-15.0.x/i
 LDFLAGS :=
 
 TARGET := main
-SOURCES := Main.cpp Basis.cpp Hermit.cpp Poly.cpp Solver.cpp
+SOURCES := src/Main.cpp src/Basis.cpp src/Hermit.cpp src/Poly.cpp src/Solver.cpp
 OBJECTS := $(SOURCES:.cpp=.o)
 
 .PHONY: all clean

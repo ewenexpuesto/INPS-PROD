@@ -1,7 +1,7 @@
 #ifndef HERMIT_H
 #define HERMIT_H
 
-#include "armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
+#include "../armadillo-code-15.0.x/armadillo-code-15.0.x/include/armadillo"
 
 /**
  * @brief Helper for generating Hermite polynomial matrices.
